@@ -697,6 +697,32 @@
         let gameListenersAttached = false;
         let initialClueLoad = true;
 
+        let CANCEL_REF = null;
+        let cancelMessageShown = false;
+        let roomJoinedAt = 0;
+        let roomSessionId = 0;
+        let pendingTimers = [];
+        let isLeavingRoom = false;
+
+        const CANCEL_MSG_DISCONNECT = 'انقطع اتصال أحد اللاعبين، تم إلغاء اللعبة والعودة إلى الغرفة.';
+        const CANCEL_MSG_EXIT = 'خرج أحد اللاعبين من اللعبة، تم إلغاء اللعبة والعودة إلى الغرفة.';
+
+        function trackTimeout(fn, delay) {
+            const session = roomSessionId;
+            const id = setTimeout(() => {
+                pendingTimers = pendingTimers.filter(t => t !== id);
+                if (session !== roomSessionId) return;
+                fn();
+            }, delay);
+            pendingTimers.push(id);
+            return id;
+        }
+
+        function clearPendingTimers() {
+            pendingTimers.forEach(id => clearTimeout(id));
+            pendingTimers = [];
+        }
+
         const gameModes = {
             '2v2': { writers: 1, guessers: 1, total: 4 },
             '3v3': { writers: 1, guessers: 2, total: 6 },
@@ -829,12 +855,20 @@
             }
         });
 
-        function clearLocalGameState() {
+        function clearLocalGameState(keepAlert) {
             document.getElementById('chatMessagesArea').innerHTML = '';
             document.getElementById('displayClueWord').innerText = 'تلميح';
             document.getElementById('displayClueNum').innerText = '-';
-            document.getElementById('customAlertText').innerText = '';
+
+            // لا نمسح نص التنبيه إذا كان ظاهراً للاعب (رسالة إلغاء اللعبة مثلاً)
+            const alertOverlay = document.getElementById('customAlert');
+            const alertVisible = alertOverlay.style.display === 'flex';
+            if (!keepAlert && !alertVisible) {
+                document.getElementById('customAlertText').innerText = '';
+            }
+
             document.getElementById('victoryText').innerHTML = '';
+            hideGameOverlays();
             activeClue = { word: "", num: "-" };
             currentTurn = '';
             previousTurn = null;
@@ -850,6 +884,20 @@
             document.getElementById('countdownText').style.display = 'none';
         }
 
+        function hideGameOverlays() {
+            document.getElementById('victoryOverlay').style.display = 'none';
+            document.getElementById('turnBannerOverlay').style.display = 'none';
+            document.getElementById('cluePopupOverlay').style.display = 'none';
+            document.getElementById('settingsOverlay').style.display = 'none';
+            document.getElementById('chatOverlayModal').style.display = 'none';
+            document.getElementById('numbersPopup').style.display = 'none';
+            document.getElementById('writerInputArea').style.display = 'none';
+            document.getElementById('guesserClueArea').style.display = 'none';
+            document.getElementById('surrenderSettingsBtn').style.display = 'none';
+            document.getElementById('cardsGrid').innerHTML = '';
+            document.querySelectorAll('.team-box').forEach(b => b.classList.remove('active-turn-box'));
+        }
+
         function detachRoomListeners() {
             if (PLAYERS_REF) PLAYERS_REF.off();
             if (ROLES_REF) ROLES_REF.off();
@@ -858,6 +906,7 @@
             if (CLUE_REF) CLUE_REF.off();
             if (COUNTDOWN_REF) COUNTDOWN_REF.off();
             if (CHATS_REF) CHATS_REF.off();
+            if (CANCEL_REF) CANCEL_REF.off();
             gameListenersAttached = false;
             chatListenersAttached = false;
         }
@@ -962,6 +1011,12 @@
             WINNER_REF = GAME_REF.child('winner');
             COUNTDOWN_REF = GAME_REF.child('countdown');
             CHATS_REF = GAME_REF.child('chats');
+            CANCEL_REF = GAME_REF.child('cancel');
+
+            roomSessionId++;
+            clearPendingTimers();
+            cancelMessageShown = false;
+            roomJoinedAt = Date.now();
 
             const newPlayerRef = PLAYERS_REF.push();
             myPlayerId = newPlayerRef.key;
@@ -972,8 +1027,12 @@
                 PLAYERS_REF.once('value', (snap) => {
                     const players = snap.val() || {}; const keys = Object.keys(players);
                     if (keys.length === 1) {
+                        // أنا أول لاعب: امسح أي بقايا من لعبة سابقة (لوحة/حالة/شات/أدوار)
                         currentPlayer.isOwner = true; PLAYERS_REF.child(myPlayerId).update({ isOwner: true });
-                        STATE_REF.child('mode').set(currentMode); COUNTDOWN_REF.set({ value: 3, isRunning: false });
+                        purgeGameData(GAME_REF, true).then(() => {
+                            STATE_REF.child('mode').set(currentMode);
+                            COUNTDOWN_REF.set({ value: 3, isRunning: false });
+                        });
                     } else {
                         let ownerExists = false;
                         for (const k in players) { if (players[k].isOwner === true && k !== myPlayerId) { ownerExists = true; break; } }
@@ -990,7 +1049,17 @@
             }).catch(err => { showAlert('خطأ في الاتصال: ' + err.message); });
         }
 
-        function exitRoomFromKick() {
+        function exitRoomFromKick(reason) {
+            if (!CURRENT_ROOM_ID && !myPlayerId) return; // خرجنا بالفعل
+
+            // هل كان اللاعب داخل لعبة شغالة؟ إذا نعم ولم يصلنا سبب، فالسبب الافتراضي هو انقطاع اتصال أحد اللاعبين
+            const wasInGame = gameStartedFlag || document.getElementById('gameScreen').style.display === 'flex';
+            const msg = reason || (wasInGame ? CANCEL_MSG_DISCONNECT : null);
+            const alertAlreadyShown = cancelMessageShown;
+
+            roomSessionId++;
+            clearPendingTimers();
+
             document.getElementById('rolesScreen').style.display = 'none';
             document.getElementById('gameScreen').style.display = 'none';
             document.getElementById('roomsScreen').style.display = 'block';
@@ -1004,28 +1073,55 @@
             clearInterval(countdownInterval);
             countdownInterval = null;
             detachRoomListeners();
-            clearLocalGameState();
+            clearLocalGameState(true);
+            cancelMessageShown = false;
+
+            // تظهر الرسالة بعد تنظيف الحالة حتى لا يتم مسح نصها
+            if (msg && !alertAlreadyShown) showAlert(msg);
         }
 
         function exitRoom() {
+            const wasInGame = gameStartedFlag || document.getElementById('gameScreen').style.display === 'flex';
+
+            if (wasInGame && GAME_REF) {
+                // أبلغ بقية اللاعبين أن اللعبة أُلغيت ثم امسح بيانات اللعبة بالكامل
+                broadcastCancel(CANCEL_MSG_EXIT);
+            }
+
             if (myPlayerId && PLAYERS_REF) {
-                PLAYERS_REF.child(myPlayerId).remove();
+                const meRef = PLAYERS_REF.child(myPlayerId);
+                meRef.onDisconnect().cancel();
+                meRef.remove();
                 if(currentPlayer.currentRoleId) {
                     ROLES_REF.child(currentPlayer.currentRoleId).remove();
                 }
             }
-            exitRoomFromKick();
+            exitRoomFromKick(wasInGame ? 'خرجت من اللعبة، تم إلغاؤها.' : null);
         }
 
         function attachGameListeners() {
             if (gameListenersAttached) return;
             gameListenersAttached = true;
 
+            // استماع لإعلان إلغاء اللعبة (انقطاع اتصال / خروج لاعب)
+            CANCEL_REF.on('value', (snap) => {
+                const data = snap.val();
+                if (!data || !data.active || gameCancelled) return;
+
+                // تجاهل إعلانات الإلغاء القديمة التي سبقت دخولي للغرفة
+                if (data.ts && data.ts < roomJoinedAt) {
+                    if (currentPlayer.isOwner && CANCEL_REF) CANCEL_REF.remove().catch(() => {});
+                    return;
+                }
+                cancelGame(data.reason || CANCEL_MSG_DISCONNECT, true);
+            });
+
             PLAYERS_REF.on('value', (snap) => {
                 gameState.players = snap.val() || {};
                 cleanupOrphanRoles();
                 
                 if (myPlayerId && (!gameState.players || !gameState.players[myPlayerId])) {
+                    // أُزلت من الغرفة (طرد/انقطاع) — تظهر رسالة الإلغاء إن كانت اللعبة شغالة
                     exitRoomFromKick();
                     return;
                 }
@@ -1072,8 +1168,12 @@
 
             STATE_REF.on('value', (snap) => {
                 const data = snap.val() || {};
+                if (gameCancelled) return;
+
                 const newTurn = data.currentTurn || '';
-                if (newTurn && newTurn !== previousTurn) { showTurnBanner(newTurn); previousTurn = newTurn; }
+                // لا تعرض شريط الدور إلا إذا كانت اللعبة شغالة فعلاً (يمنع ظهوره لمن يدخل الغرفة بعد انتهائها)
+                if (newTurn && newTurn !== previousTurn && data.gameStarted === true) { showTurnBanner(newTurn); }
+                previousTurn = newTurn;
                 currentTurn = newTurn;
 
                 redWordsLeft = data.redWordsLeft !== undefined ? data.redWordsLeft : 9;
@@ -1105,11 +1205,11 @@
                 const data = snap.val() || { word: '', num: '-' };
                 const isNewClue = data.word !== '' && (data.word !== activeClue.word || data.num !== activeClue.num);
                 activeClue.word = data.word || ''; activeClue.num = data.num || '-';
-                document.getElementById('displayClueWord').innerText = activeClue.word;
+                document.getElementById('displayClueWord').innerText = activeClue.word || 'تلميح';
                 document.getElementById('displayClueNum').innerText = activeClue.num;
 
                 if (isNewClue && !initialClueLoad) {
-                    setTimeout(() => {
+                    trackTimeout(() => {
                         showCluePopupAnimation(data.word, data.num);
                     }, 3800);
                 }
@@ -1130,7 +1230,7 @@
             document.getElementById('cluePopupNum').innerText = num;
             overlay.style.display = 'flex';
             
-            setTimeout(() => {
+            trackTimeout(() => {
                 overlay.style.display = 'none';
             }, 3500);
         }
@@ -1157,34 +1257,85 @@
                 gameStartedFlag = false;
                 clearInterval(countdownInterval);
                 countdownInterval = null;
-                STATE_REF.update({ gameStarted: false, winner: '', blackWordWinner: false, currentTurn: '', redWordsLeft: 9, blueWordsLeft: 8 });
-                BOARD_REF.remove();
-                ROLES_REF.remove();
-                CHATS_REF.remove();
-                CLUE_REF.set({ word: '', num: '-' });
-                if (WINNER_REF) WINNER_REF.set('');
-                COUNTDOWN_REF.set({ value: 3, isRunning: false });
+                clearPendingTimers();
+
+                // امسح كل بيانات اللعبة من قاعدة البيانات وأبقِ اللاعبين في الغرفة فقط
+                if (currentPlayer.isOwner) {
+                    purgeGameData(GAME_REF, true).then(() => {
+                        if (!CURRENT_ROOM_ID) return;
+                        STATE_REF.set({ mode: currentMode, gameStarted: false, winner: '', blackWordWinner: false, currentTurn: '', redWordsLeft: 9, blueWordsLeft: 8 });
+                        CLUE_REF.set({ word: '', num: '-' });
+                        COUNTDOWN_REF.set({ value: 3, isRunning: false });
+                    });
+                }
+
                 document.getElementById('victoryOverlay').style.display = 'none';
                 document.getElementById('countdownText').style.display = 'none';
+
+                // ارجع لشاشة الأدوار ونظف واجهة اللعبة
+                document.getElementById('gameScreen').style.display = 'none';
+                document.getElementById('rolesScreen').style.display = 'block';
+                document.body.classList.remove('game-active');
+
                 clearLocalGameState();
                 currentPlayer.currentRoleId = null;
+                if (myPlayerId && PLAYERS_REF) PLAYERS_REF.child(myPlayerId).update({ currentRoleId: null });
             } else { exitRoomFromKick(); }
         }
 
-        function cancelGame(reason) {
+        // يمسح كل بيانات اللعبة من قاعدة البيانات (لوحة، حالة، تلميح، أدوار، شات...)
+        // يبقي على عقدة اللاعبين فقط إن طُلب ذلك، وإلا يحذف عقدة اللعبة كاملة.
+        function purgeGameData(gameRef, keepPlayers) {
+            if (!gameRef) return Promise.resolve();
+            if (!keepPlayers) return gameRef.remove().catch(() => {});
+            return gameRef.update({
+                board: null,
+                state: null,
+                clue: null,
+                winner: null,
+                chats: null,
+                roles: null,
+                countdown: null,
+                cancel: null
+            }).catch(() => {});
+        }
+
+        // ينشر سبب الإلغاء لبقية اللاعبين ثم يمسح بيانات اللعبة نهائياً
+        function broadcastCancel(reason) {
+            if (!GAME_REF) return;
+            const gameRefSnapshot = GAME_REF;
+            gameRefSnapshot.child('cancel').transaction(current => {
+                if (current && current.active) return; // شخص آخر أعلن الإلغاء بالفعل
+                return { active: true, reason: reason, ts: Date.now() };
+            }).catch(() => {});
+
+            // امنح اللاعبين وقتاً لاستلام الرسالة ثم احذف بيانات اللعبة (مع إبقاء أي لاعب دخل حديثاً)
+            setTimeout(() => { purgeGameData(gameRefSnapshot, true); }, 2000);
+        }
+
+        function cancelGame(reason, alreadyBroadcast) {
             if (gameCancelled) return;
             gameCancelled = true;
             clearInterval(countdownInterval);
+            clearPendingTimers();
+
+            if (!alreadyBroadcast) broadcastCancel(reason);
+
+            cancelMessageShown = true;
             showAlert(reason);
-            setTimeout(() => { 
-                if (currentPlayer.isOwner && GAME_REF) {
-                    GAME_REF.remove();
-                }
-                exitRoomFromKick(); 
-            }, 1500);
+
+            // أزل نفسي من الغرفة حتى لا أبقى لاعباً شبحاً فيها
+            if (myPlayerId && PLAYERS_REF) {
+                const meRef = PLAYERS_REF.child(myPlayerId);
+                meRef.onDisconnect().cancel();
+                meRef.remove().catch(() => {});
+            }
+
+            setTimeout(() => { exitRoomFromKick(reason); }, 1500);
         }
 
         function checkPlayersIntegrity() {
+            if (!CURRENT_ROOM_ID || !STATE_REF) return;
             const currentPlayersCount = Object.keys(gameState.players || {}).length;
 
             if (currentPlayersCount === 0 && CURRENT_ROOM_ID) {
@@ -1195,13 +1346,13 @@
             }
 
             STATE_REF.child('gameStarted').once('value', (snap) => {
-                if (!snap.val() || gameCancelled) return;
+                if (!snap.val() || gameCancelled || !CURRENT_ROOM_ID) return;
                 const required = gameModes[currentMode].total;
 
-                if (currentPlayersCount < required) { cancelGame('تم إنهاء اللعبة بسبب انسحاب أحد اللاعبين، جاري العودة للغرفة...'); return; }
+                if (currentPlayersCount < required) { cancelGame(CANCEL_MSG_DISCONNECT); return; }
                 for (const roleId in gameState.roles) {
                     const playerId = gameState.roles[roleId];
-                    if (playerId && !gameState.players[playerId]) { cancelGame('تم إنهاء اللعبة بسبب انسحاب أحد اللاعبين، جاري العودة للغرفة...'); return; }
+                    if (playerId && !gameState.players[playerId]) { cancelGame(CANCEL_MSG_DISCONNECT); return; }
                 }
             });
         }
@@ -1596,9 +1747,11 @@
             else if (roleType === 'blueWriter') { text = 'دور الكاتب الأزرق بدأ.. خل اخوياك يفهمون كلمات فريقك!'; theme = 'banner-blue'; } 
             else if (roleType === 'blueGuesser') { text = 'الآن جا دور التوقع للأزرق.. سمو بالله وافهمو خويكم!'; theme = 'banner-blue'; }
 
+            if (!text) { overlay.style.display = 'none'; return; }
+
             banner.innerText = text; banner.className = 'turn-banner ' + theme; overlay.style.display = 'flex';
             banner.style.animation = 'none'; banner.offsetHeight; banner.style.animation = 'slideBanner 4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards';
-            setTimeout(() => { overlay.style.display = 'none'; }, 4000);
+            trackTimeout(() => { overlay.style.display = 'none'; }, 4000);
         }
 
         function updateTurnUI() {
@@ -1776,7 +1929,7 @@
             if (isBlackWord) { text.innerHTML = `فاز الفريق <span style="color:${colorCode}">${teamName}</span> بسبب اختيار الكلمة السوداء`; } 
             else { text.innerHTML = `فاز الفريق <span style="color:${colorCode}">${teamName}</span> 🏆`; }
             overlay.style.display = 'flex';
-            setTimeout(() => { resetGame(); }, 5000);
+            trackTimeout(() => { resetGame(); }, 5000);
         }
 
         function openSettings(inGame) {
