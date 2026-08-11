@@ -66,14 +66,41 @@
         }
         body.game-active {
             background: var(--bg-game); background-size: 200% 200%;
-            animation: bgBreathe 20s ease infinite; height: 100vh; overflow: hidden;
+            animation: bgBreathe 20s ease infinite; height: 100vh; height: 100dvh; overflow: hidden;
         }
 
-        #nameScreen, #roomsScreen, #rolesScreen { padding: 20px; box-sizing: border-box; animation: fadeIn 0.4s ease-out; }
+        #nameScreen, #roomsScreen, #rolesScreen { padding: 12px; box-sizing: border-box; animation: fadeIn 0.4s ease-out; }
         #roomsScreen, #rolesScreen, #gameScreen { display: none; }
-        #gameScreen { padding: 10px; padding-top: 50px; height: 100vh; flex-direction: column; animation: fadeIn 0.5s ease-out; }
 
-        .top-controls { display: flex; justify-content: flex-end; align-items: center; padding: 10px 0; gap: 10px; }
+        /* ===== شاشات ثابتة: كل شيء ظاهر بلا تمرير ===== */
+        html, body { height: 100%; }
+        body { overflow: hidden; }          /* لا تمرير للصفحة إطلاقاً */
+
+        /* كل شاشة تملأ الارتفاع وتوزّع محتواها داخلياً */
+        #nameScreen {
+            display: flex; height: 100vh; height: 100dvh;
+            flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+        }
+        #roomsScreen {
+            height: 100vh; height: 100dvh;
+            flex-direction: column; align-items: stretch; justify-content: flex-start;
+        }
+        #rolesScreen {
+            height: 100vh; height: 100dvh;
+            flex-direction: column; align-items: stretch; justify-content: flex-start; gap: 2px;
+        }
+        /* المناطق التي قد تطول: تتقلّص وتمرّر داخلياً بدل تمرير الصفحة كلها */
+        #roomsListView { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+        #roomsGrid { flex: 1; min-height: 0; align-content: flex-start; padding: 4px; }
+        .players-lobby { flex-shrink: 0; overflow-y: auto; max-height: 22vh; }
+        .teams-container { flex-shrink: 0; }
+        #gameScreen {
+            padding: 8px; padding-top: 46px; height: 100vh; height: 100dvh;
+            flex-direction: column; animation: fadeIn 0.5s ease-out;
+            box-sizing: border-box; overflow: hidden;
+        }
+
+        .top-controls { display: flex; justify-content: flex-end; align-items: center; padding: 5px 0; gap: 8px; flex-wrap: wrap; flex-shrink: 0; }
 
         .icon-btn, .leave-role-btn, .enter-btn, .random-teams-btn, .surrender-btn {
             transition: all 0.2s ease-in-out; font-family: 'Cairo', sans-serif;
@@ -296,7 +323,44 @@
         }
         .enter-btn:hover { transform: translateY(-3px); }
 
-        .rooms-container { display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; max-width: 900px; margin: 0 auto; }
+        .rooms-container { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; max-width: 900px; margin: 0 auto; overflow-y: auto; }
+
+        /* ===== أزرار اختيار نوع الغرف ===== */
+        .mode-picker {
+            display: flex; flex-direction: column; gap: 14px; align-items: center;
+            justify-content: center; max-width: 420px; margin: 0 auto; width: 100%;
+        }
+        .mode-btn {
+            width: 100%; padding: 18px 20px; border-radius: 16px; cursor: pointer;
+            background: rgba(30,30,30,0.92); border: 2px solid rgba(212,175,55,0.55);
+            color: #D4AF37; font-family: 'Cairo', sans-serif;
+            display: flex; flex-direction: column; align-items: center; gap: 4px;
+            transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+        }
+        .mode-btn:hover { transform: translateY(-3px); border-color: #fbc02d; box-shadow: 0 6px 18px rgba(212,175,55,0.25); }
+        .mode-btn:active { transform: scale(0.97); }
+        .mode-btn-title { font-size: 21px; font-weight: 900; }
+        .mode-btn-sub { font-size: 13px; color: #bbb; font-weight: 700; }
+        .mode-3v3-btn { border-color: rgba(100,181,246,0.55); color: #64b5f6; }
+        .mode-4v4-btn { border-color: rgba(129,199,132,0.55); color: #81c784; }
+        .back-modes-btn {
+            background: rgba(40,40,40,0.9); color: #D4AF37; border: 2px solid rgba(212,175,55,0.45);
+            border-radius: 12px; padding: 8px 18px; font-family: 'Cairo', sans-serif; font-weight: 900;
+            font-size: 14px; cursor: pointer; margin-bottom: 12px;
+            transition: transform 0.16s ease, background-color 0.16s ease;
+        }
+        .back-modes-btn:hover { background: rgba(212,175,55,0.16); }
+        .back-modes-btn:active { transform: scale(0.95); }
+        .rooms-bottom-actions { margin-top: 14px; flex-shrink: 0; }
+
+        /* ===== النوافذ المنبثقة: لا تتجاوز الشاشة أبداً ===== */
+        .custom-alert-overlay, .settings-overlay, .chat-modal-overlay, .victory-overlay {
+            padding: 10px; box-sizing: border-box;
+        }
+        .custom-alert-box, .settings-box, .chat-modal-box {
+            max-height: 92vh; max-height: 92dvh; overflow-y: auto; box-sizing: border-box;
+        }
+        .settings-box { padding-top: 14px; padding-bottom: 14px; }
         .room-card {
             background: rgba(30, 30, 30, 0.9); border: 2px solid rgba(212, 175, 55, 0.5);
             border-radius: 15px; padding: 20px; width: 180px; text-align: center; cursor: pointer; transition: 0.2s;
@@ -307,7 +371,7 @@
         .room-count { color: white; font-weight: bold; background: #111; padding: 5px; border-radius: 8px; display: inline-block;}
 
         .players-lobby {
-            width: 90%; max-width: 800px; min-height: 60px; margin: 0 auto 14px; padding: 11px;
+            width: 96%; max-width: 800px; min-height: 50px; margin: 0 auto 7px; padding: 8px;
             background: rgba(20,20,20,0.8); border: 1px solid rgba(212, 175, 55, 0.3);
             border-radius: 14px; display: flex; flex-wrap: wrap; gap: 12px; justify-content: center;
         }
@@ -316,7 +380,10 @@
         .player-name-label { font-size: 11px; color: #fff; font-weight: 900; background: rgba(0,0,0,0.6); padding: 1px 6px; border-radius: 6px; }
         .crown-icon { position: absolute; top: -15px; font-size: 17px; z-index: 10; }
 
-        .teams-container { display: flex; justify-content: center; gap: 14px; flex-wrap: wrap; }
+        .teams-container {
+            display: flex; justify-content: center; gap: 12px; flex-wrap: wrap;
+            flex: 1; min-height: 0; overflow-y: auto; align-content: flex-start; padding-bottom: 4px;
+        }
         .team {
             display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; padding: 12px;
             border-radius: 14px; background: rgba(30,30,30,0.8); border: 1px solid rgba(255,255,255,0.05);
@@ -340,7 +407,7 @@
             font-family: 'Cairo'; font-weight: 900; border-radius: 9px; cursor: pointer;
             margin-bottom: 10px; display: none; font-size: 13px;
         }
-        .random-teams-wrapper { margin: 8px 0; display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
+        .random-teams-wrapper { margin: 5px 0; display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; flex-shrink: 0; }
 
         /* ===== وضع المالك ===== */
         .owner-login-btn {
@@ -469,9 +536,11 @@
         }
 
         .game-layout {
-            display: flex; flex-direction: column; flex-grow: 1; justify-content: flex-start;
-            max-width: 800px; margin: 0 auto; width: 100%; gap: 10px; position: relative;
+            display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; justify-content: flex-start;
+            max-width: 800px; margin: 0 auto; width: 100%; gap: 6px; position: relative;
         }
+        .team-row { flex-shrink: 0; }
+        .clue-input-area, .guesser-clue-area { flex-shrink: 0; }
 
         .team-row { display: flex; justify-content: space-between; gap: 12px; width: 100%; }
 
@@ -504,9 +573,12 @@
         }
 
         .cards-grid {
-            flex-grow: 0; display: grid; grid-template-columns: repeat(5, 1fr); grid-template-rows: repeat(5, 1fr);
-            gap: 10px; width: 100%; height: 52vh; background: rgba(30,30,30,0.8);
-            border-radius: 18px; padding: 10px; border: 1px solid rgba(255,255,255,0.08);
+            /* تأخذ المساحة المتبقية تلقائياً فلا تفيض الشاشة ولا تحتاج تمريراً */
+            flex: 1 1 auto; min-height: 0; display: grid;
+            grid-template-columns: repeat(5, 1fr); grid-template-rows: repeat(5, 1fr);
+            gap: 7px; width: 100%; background: rgba(30,30,30,0.8);
+            border-radius: 18px; padding: 7px; border: 1px solid rgba(255,255,255,0.08);
+            box-sizing: border-box;
         }
 
         .word-card {
@@ -818,9 +890,31 @@
         <div class="top-controls">
             <button class="icon-btn" onclick="toggleFullScreen()">⛶ ملء الشاشة</button>
         </div>
-        <h2 style="font-size: 28px; margin-bottom: 30px;">اختر الغرفة</h2>
-        <div id="roomsGrid" class="rooms-container"></div>
-        <div style="margin-top: 40px;">
+        <h2 id="roomsTitle" style="font-size: 24px; margin: 4px 0 12px;">اختر نوع الغرف</h2>
+
+        <!-- اختيار نوع الغرف -->
+        <div id="modePicker" class="mode-picker">
+            <button class="mode-btn mode-2v2-btn" onclick="showRoomsOfMode('2v2')">
+                <span class="mode-btn-title">غرف 2v2</span>
+                <span class="mode-btn-sub">4 لاعبين</span>
+            </button>
+            <button class="mode-btn mode-3v3-btn" onclick="showRoomsOfMode('3v3')">
+                <span class="mode-btn-title">غرف 3v3</span>
+                <span class="mode-btn-sub">6 لاعبين</span>
+            </button>
+            <button class="mode-btn mode-4v4-btn" onclick="showRoomsOfMode('4v4')">
+                <span class="mode-btn-title">غرف 4v4</span>
+                <span class="mode-btn-sub">8 لاعبين</span>
+            </button>
+        </div>
+
+        <!-- قائمة غرف النوع المختار -->
+        <div id="roomsListView" style="display:none;">
+            <button class="back-modes-btn" onclick="backToModes()">↩ رجوع لأنواع الغرف</button>
+            <div id="roomsGrid" class="rooms-container"></div>
+        </div>
+
+        <div class="rooms-bottom-actions">
             <button class="enter-btn" onclick="showCreateRoomModal()">إنشاء غرفة جديدة</button>
             <button class="wins-btn" id="winsRevealBtn" style="display:none;" onclick="openWinsModal()">🏆 كشف الفوزات</button>
         </div>
@@ -834,7 +928,7 @@
             <button class="icon-btn" style="background:#a00000; color:white; border-color:#ff4444;" onclick="exitRoom()">🚪 خروج</button>
         </div>
 
-        <div id="mainChatControls" style="margin-bottom: 12px;">
+        <div id="mainChatControls" style="margin-bottom: 6px;">
             <button class="chat-toggle-btn" onclick="openChatWindow('global')">
                 شات عام
                 <span id="notif-global" class="chat-notif"></span>
@@ -845,7 +939,7 @@
             </button>
         </div>
 
-        <h3 style="color: #32CD32; margin-bottom: 8px; font-size: 16px;">المتواجدين</h3>
+        <h3 style="color: #32CD32; margin: 2px 0 5px; font-size: 15px; flex-shrink:0;">المتواجدين</h3>
         <div class="players-lobby" id="playersLobby"></div>
 
         <div class="random-teams-wrapper">
@@ -854,7 +948,7 @@
             <button class="kick-btn" id="kickBtn" onclick="openKickModal()" style="display:none;">🚫 طرد</button>
         </div>
 
-        <h2 style="margin-top: 3px; margin-bottom: 10px; font-size: 18px;">اختر فريقك ودورك</h2>
+        <h2 style="margin: 4px 0 6px; font-size: 17px; flex-shrink:0;">اختر فريقك ودورك</h2>
 
         <div class="teams-container">
             <div id="redTeamContainer" class="team red-team mode-2v2"></div>
@@ -1519,11 +1613,36 @@
             }
         }
 
+        // نوع الغرف المعروض حالياً (null = شاشة اختيار النوع)
+        let selectedRoomMode = null;
+
+        function showRoomsOfMode(mode) {
+            selectedRoomMode = mode;
+            document.getElementById('modePicker').style.display = 'none';
+            document.getElementById('roomsListView').style.display = 'flex';
+            document.getElementById('roomsTitle').innerText = `غرف ${mode}`;
+            renderRoomsList();
+        }
+
+        function backToModes() {
+            selectedRoomMode = null;
+            document.getElementById('roomsListView').style.display = 'none';
+            document.getElementById('modePicker').style.display = 'flex';
+            document.getElementById('roomsTitle').innerText = 'اختر نوع الغرف';
+        }
+
         function renderRoomsList() {
             const container = document.getElementById('roomsGrid');
+            if (!container) return;
             container.innerHTML = '';
+            if (!selectedRoomMode) return;          // ما زلنا في شاشة اختيار النوع
+            let shown = 0;
             for (const rId in allRoomsData) {
                 const room = allRoomsData[rId];
+                // اعرض غرف النوع المختار فقط
+                const roomMode = room.mode || '2v2';
+                if (roomMode !== selectedRoomMode) continue;
+                shown++;
                 const pCount = room.game && room.game.players ? Object.keys(room.game.players).length : 0;
                 const isFull = pCount >= room.maxPlayers;
                 // المالك يدخل حتى لو كانت ممتلئة، ويرى زر الحذف
@@ -1539,6 +1658,9 @@
                         ${deleteBtn}
                     </div>
                 `;
+            }
+            if (!shown) {
+                container.innerHTML = '<p style="color:#888; font-weight:700;">لا توجد غرف من هذا النوع حالياً</p>';
             }
         }
 
@@ -1635,7 +1757,7 @@
             saveProfile();
 
             document.getElementById('nameScreen').style.display = 'none';
-            document.getElementById('roomsScreen').style.display = 'block';
+            document.getElementById('roomsScreen').style.display = 'flex'; backToModes();
             document.getElementById('winsRevealBtn').style.display = isSiteOwner ? 'inline-block' : 'none';
             renderRoomsList();
         }
@@ -1672,6 +1794,7 @@
                 customWords: customWords
             }).then(() => {
                 closeCreateRoomModal();
+                showRoomsOfMode(mode);   // اعرض قائمة النوع الذي أُنشئت فيه الغرفة
                 showAlert('تم إنشاء الغرفة بنجاح');
             });
         }
@@ -1735,7 +1858,7 @@
                     document.getElementById('roomsScreen').style.display = 'none';
                     // نفس القاعدة: إن كانت اللعبة شغالة فقد نقلَنا مستمع الحالة إلى شاشة اللعب
                     if (document.getElementById('gameScreen').style.display !== 'flex') {
-                        document.getElementById('rolesScreen').style.display = 'block';
+                        document.getElementById('rolesScreen').style.display = 'flex';
                     }
                     updateLobbyUI(); buildRolesUI(); initializeChats(); applyOwnerViewMode();
                 }).catch(err => { showAlert('خطأ في الاتصال: ' + err.message); });
@@ -1773,7 +1896,7 @@
                     // لا تُظهر شاشة الأدوار إذا كانت اللعبة شغالة وقد أدخلنا مستمع الحالة إلى شاشة اللعب،
                     // وإلا ظهرت الشاشتان فوق بعض (حالة اللاعب العائد بعد انقطاع أثناء الجولة).
                     if (document.getElementById('gameScreen').style.display !== 'flex') {
-                        document.getElementById('rolesScreen').style.display = 'block';
+                        document.getElementById('rolesScreen').style.display = 'flex';
                     }
                     updateLobbyUI(); buildRolesUI(); initializeChats();
                 });
@@ -1797,7 +1920,7 @@
 
             document.getElementById('rolesScreen').style.display = 'none';
             document.getElementById('gameScreen').style.display = 'none';
-            document.getElementById('roomsScreen').style.display = 'block';
+            document.getElementById('roomsScreen').style.display = 'flex'; backToModes();
             document.body.classList.remove('game-active');
             document.getElementById('winsRevealBtn').style.display = isSiteOwner ? 'inline-block' : 'none';
 
@@ -2057,7 +2180,7 @@
                     updateKickBtnVisibility();
                     if (document.getElementById('gameScreen').style.display === 'flex') {
                         document.getElementById('gameScreen').style.display = 'none';
-                        document.getElementById('rolesScreen').style.display = 'block';
+                        document.getElementById('rolesScreen').style.display = 'flex';
                         document.body.classList.remove('game-active');
                         document.getElementById('surrenderSettingsBtn').style.display = 'none';
                     }
@@ -2166,7 +2289,7 @@
                 clearPendingTimers();
                 document.getElementById('victoryOverlay').style.display = 'none';
                 document.getElementById('gameScreen').style.display = 'none';
-                document.getElementById('rolesScreen').style.display = 'block';
+                document.getElementById('rolesScreen').style.display = 'flex';
                 document.body.classList.remove('game-active');
                 clearLocalGameState({ stayInRoom: true });
                 applyOwnerViewMode();
@@ -2193,7 +2316,7 @@
 
                 // ارجع لشاشة الأدوار ونظف واجهة اللعبة
                 document.getElementById('gameScreen').style.display = 'none';
-                document.getElementById('rolesScreen').style.display = 'block';
+                document.getElementById('rolesScreen').style.display = 'flex';
                 document.body.classList.remove('game-active');
 
                 // تنظيف "داخل الغرفة": نحتفظ بقائمة اللاعبين حتى تبدأ جولة جديدة بشكل طبيعي
@@ -2284,7 +2407,7 @@
 
             // ارجع لشاشة الأدوار داخل نفس الغرفة (بدون الخروج إلى قائمة الغرف)
             document.getElementById('gameScreen').style.display = 'none';
-            document.getElementById('rolesScreen').style.display = 'block';
+            document.getElementById('rolesScreen').style.display = 'flex';
             document.body.classList.remove('game-active');
 
             clearLocalGameState({ stayInRoom: true, keepAlert: true });
