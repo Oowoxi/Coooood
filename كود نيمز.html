@@ -993,6 +993,17 @@
 
         // ===== مهلة عودة اللاعب المنقطع =====
         const RECONNECT_SECONDS = 30;
+        // ===== نبضة الحياة: تمييز الانقطاع الحقيقي عن مجرد تبديل التبويب =====
+        // المتصفح يوقف onDisconnect أحياناً عند تبديل التبويب/التطبيق، والصفحة تبقى حيّة فعلياً.
+        // لذلك نكتب نبضة كل 5 ثوانٍ، ولا نعتبر اللاعب منقطعاً إلا إذا توقفت نبضته فترة كافية.
+        const HEARTBEAT_MS = 5000;            // كل كم نكتب نبضة
+        const HEARTBEAT_DEAD_MS = 22000;      // بعد كم من الصمت نعتبره منقطعاً فعلاً
+        let heartbeatInterval = null;
+        let isPageHidden = false;             // الصفحة في الخلفية (تبديل تبويب/تطبيق)
+        let HEARTBEAT_REF = null;             // game/heartbeats (منفصلة عن players حتى لا تُعيد رسم الواجهة)
+        let heartbeats = {};                  // نسخة محلية من النبضات
+        let seatRecoveryTried = false;        // منع تكرار محاولة استعادة المقعد
+        let isLeavingPage = false;            // إغلاق حقيقي للصفحة: لا تُستعاد المقاعد بعده
         let PENDING_DC_REF = null;            // game/pendingDisconnect
         let reconnectInterval = null;         // مؤقّت العد التنازلي المحلي
         let lastKnownPlayers = {};            // لقطة أسماء اللاعبين قبل الحذف (لمعرفة من غادر)
@@ -1378,6 +1389,7 @@
             if (CANCEL_REF) CANCEL_REF.off();
             if (GLOBAL_CHAT_REF) GLOBAL_CHAT_REF.off();
             if (PENDING_DC_REF) PENDING_DC_REF.off();
+            if (HEARTBEAT_REF) HEARTBEAT_REF.off();
             if (SPECTATORS_REF) SPECTATORS_REF.off();
             if (GAME_REF) GAME_REF.child('roomDeleted').off();
             gameListenersAttached = false;
@@ -1591,6 +1603,7 @@
             CANCEL_REF = GAME_REF.child('cancel');
             SPECTATORS_REF = GAME_REF.child('spectators');
             PENDING_DC_REF = GAME_REF.child('pendingDisconnect');
+            HEARTBEAT_REF = GAME_REF.child('heartbeats');
             // الشات العام على مستوى الغرفة (خارج /game) فلا يتأثر بحذف بيانات اللعبة
             GLOBAL_CHAT_REF = db.ref(`/rooms/${rId}/globalChat`);
 
@@ -1625,6 +1638,7 @@
 
             newPlayerRef.set(playerData).then(() => {
                 newPlayerRef.onDisconnect().remove();
+                startHeartbeat();
                 // إن كان هناك لاعب منقطع ينتظر العودة ونفس الاسم، أعِد ربطه بدوره وأكمل الجولة
                 tryResumeDisconnectedSeat();
                 PLAYERS_REF.once('value', (snap) => {
@@ -1717,6 +1731,8 @@
             const gameRefSnapshot = GAME_REF;
             const chatRefSnapshot = GLOBAL_CHAT_REF;
 
+            stopHeartbeat();
+            if (myPlayerId && HEARTBEAT_REF) HEARTBEAT_REF.child(myPlayerId).remove().catch(() => {});
             if (myPlayerId && PLAYERS_REF) {
                 const meRef = PLAYERS_REF.child(myPlayerId);
                 meRef.onDisconnect().cancel();
@@ -1769,6 +1785,17 @@
             });
 
             // فترة انتظار عودة لاعب منقطع
+            HEARTBEAT_REF.on('value', (snap) => {
+                heartbeats = snap.val() || {};
+                // نظافة: احذف نبضات من لم يعودوا لاعبين (صاحب الغرفة فقط)
+                if (!isSiteOwner && currentPlayer.isOwner && gameState.players) {
+                    const players = gameState.players || {};
+                    for (const pid in heartbeats) {
+                        if (!players[pid]) HEARTBEAT_REF.child(pid).remove().catch(() => {});
+                    }
+                }
+            });
+
             PENDING_DC_REF.on('value', (snap) => {
                 pendingDisconnectData = snap.val();
                 if (pendingDisconnectData && pendingDisconnectData.active) {
@@ -1793,10 +1820,25 @@
                 cleanupOrphanRoles();
 
                 if (myPlayerId && (!gameState.players || !gameState.players[myPlayerId])) {
-                    // أُزلت من الغرفة (طرد/انقطاع) — تظهر رسالة الإلغاء إن كانت اللعبة شغالة
+                    // اختفى مقعدي: قد يكون طرداً حقيقياً، وقد يكون onDisconnect انطلق بالخطأ
+                    // أثناء تبديل التبويب/التطبيق. ما دمت متصلاً فعلياً نستعيد المقعد بدل الطرد.
+                    if (!isLeavingPage && !seatRecoveryTried && CURRENT_ROOM_ID && !isSiteOwner) {
+                        seatRecoveryTried = true;
+                        ensureMySeatAlive();
+                        // امنح الاستعادة فرصة قبل الحكم بالطرد
+                        pendingTimers.push(setTimeout(() => {
+                            if (!myPlayerId || !CURRENT_ROOM_ID) return;
+                            PLAYERS_REF.child(myPlayerId).once('value', (s2) => {
+                                if (!s2.exists() && myPlayerId && CURRENT_ROOM_ID) exitRoomFromKick();
+                                else seatRecoveryTried = false;
+                            });
+                        }, 1500));
+                        return;
+                    }
                     exitRoomFromKick();
                     return;
                 }
+                seatRecoveryTried = false;
 
                 if (myPlayerId && gameState.players[myPlayerId]) {
                     currentPlayer.isOwner = gameState.players[myPlayerId].isOwner || false;
@@ -2087,6 +2129,85 @@
         // ===================== مهلة عودة اللاعب المنقطع =====================
 
         // إعادة ربط اللاعب العائد بنفس دوره إن كان اسمه مطابقاً للمنقطع
+        // ===== نبضة الحياة =====
+        // تُكتب دورياً ما دامت الصفحة موجودة (حتى لو كانت في الخلفية)،
+        // فتبديل التبويب أو فتح تطبيق آخر لا يُحسب انقطاعاً إطلاقاً.
+        function startHeartbeat() {
+            stopHeartbeat();
+            if (isSiteOwner || !myPlayerId || !HEARTBEAT_REF) return;
+            const beat = () => {
+                if (!myPlayerId || !HEARTBEAT_REF) { stopHeartbeat(); return; }
+                HEARTBEAT_REF.child(myPlayerId).set(Date.now()).catch(() => {});
+            };
+            beat();
+            heartbeatInterval = setInterval(beat, HEARTBEAT_MS);
+        }
+
+        function stopHeartbeat() {
+            if (heartbeatInterval) { clearInterval(heartbeatInterval); heartbeatInterval = null; }
+        }
+
+        // هل هذا اللاعب ميت فعلاً؟ (نبضته توقفت مدة أطول من المسموح)
+        function isPlayerStale(pid) {
+            if (!pid) return true;
+            const hb = heartbeats[pid] || 0;
+            if (!hb) return false;            // لا توجد نبضة مسجّلة بعد: لا نحكم عليه
+            return (Date.now() - hb) > HEARTBEAT_DEAD_MS;
+        }
+
+        // إعادة تسجيل مقعدي فوراً إذا حذفه onDisconnect بالخطأ وأنا ما زلت موجوداً
+        function ensureMySeatAlive() {
+            if (isLeavingPage) return;   // الصفحة تُغلق فعلاً: لا تُعِد إنشاء المقعد
+            if (isSiteOwner || !myPlayerId || !PLAYERS_REF || !CURRENT_ROOM_ID) return;
+            PLAYERS_REF.child(myPlayerId).once('value', (snap) => {
+                if (snap.exists()) return;
+                if (!myPlayerId || !CURRENT_ROOM_ID) return;
+                // المقعد اختفى رغم أنني متصل: أعده كما كان
+                const data = {
+                    name: currentPlayer.name,
+                    avatar: currentPlayer.avatar,
+                    isOwner: !!currentPlayer.isOwner,
+                    currentRoleId: currentPlayer.currentRoleId || null
+                };
+                PLAYERS_REF.child(myPlayerId).set(data).then(() => {
+                    PLAYERS_REF.child(myPlayerId).onDisconnect().remove();
+                    // أعد ربط دوري إن كان ما زال شاغراً
+                    if (currentPlayer.currentRoleId && ROLES_REF) {
+                        ROLES_REF.child(currentPlayer.currentRoleId).once('value', (rs) => {
+                            if (!rs.exists()) ROLES_REF.child(currentPlayer.currentRoleId).set(myPlayerId).catch(() => {});
+                        });
+                    }
+                }).catch(() => {});
+            });
+        }
+
+        // ===== التعامل مع تبديل التبويب/التطبيق =====
+        // هذه ليست انقطاعاً: الصفحة ما زالت حيّة. نستمر بالنبض، وعند العودة
+        // نتأكد فوراً أن مقعدنا لم يُحذف بالخطأ ونستعيده إن لزم.
+        document.addEventListener('visibilitychange', () => {
+            isPageHidden = (document.visibilityState === 'hidden');
+            if (!isPageHidden) {
+                // رجع المستخدم للصفحة: نبضة فورية + تأكد من سلامة المقعد
+                if (myPlayerId && HEARTBEAT_REF && !isSiteOwner) {
+                    HEARTBEAT_REF.child(myPlayerId).set(Date.now()).catch(() => {});
+                    ensureMySeatAlive();
+                    tryResumeDisconnectedSeat();
+                }
+                startHeartbeat();
+            }
+        });
+
+        // إغلاق حقيقي للصفحة/التبويب => إزالة فورية بلا انتظار المهلة
+        window.addEventListener('pagehide', (e) => {
+            if (e && e.persisted) return;    // ذهبت للذاكرة المؤقتة فقط، ليست إغلاقاً
+            isLeavingPage = true;
+            stopHeartbeat();
+            if (myPlayerId && !isSiteOwner) {
+                if (HEARTBEAT_REF) HEARTBEAT_REF.child(myPlayerId).remove().catch(() => {});
+                if (PLAYERS_REF) PLAYERS_REF.child(myPlayerId).remove().catch(() => {});
+            }
+        });
+
         function tryResumeDisconnectedSeat() {
             if (!PENDING_DC_REF || isSiteOwner || !myPlayerId) return;
             PENDING_DC_REF.once('value', (snap) => {
@@ -2183,7 +2304,8 @@
             const byPlayer = {};
             for (const roleId in roles) {
                 const pid = roles[roleId];
-                if (pid && !players[pid]) {
+                // مقعد مفقود = اللاعب غير موجود أصلاً، أو موجود لكن نبضته توقفت (انقطاع حقيقي)
+                if (pid && (!players[pid] || isPlayerStale(pid))) {
                     if (!byPlayer[pid]) byPlayer[pid] = [];
                     byPlayer[pid].push(roleId);
                 }
@@ -2234,9 +2356,15 @@
                     beginReconnectGrace({ name: 'أحد اللاعبين', roles: [] });
                     return;
                 }
+                // لا نلغي الجولة فوراً أبداً: أي مقعد شاغر يمر عبر مهلة العودة أولاً،
+                // فإن عاد اللاعب (أو كان مجرد تبديل تبويب) تستكمل الجولة بلا إزعاج.
                 for (const roleId in gameState.roles) {
                     const playerId = gameState.roles[roleId];
-                    if (playerId && !gameState.players[playerId]) { cancelGame(CANCEL_MSG_DISCONNECT); return; }
+                    if (playerId && !gameState.players[playerId]) {
+                        const known = lastKnownPlayers[playerId];
+                        beginReconnectGrace({ name: (known && known.name) || 'أحد اللاعبين', roles: [roleId] });
+                        return;
+                    }
                 }
             });
         }
