@@ -80,20 +80,20 @@
         }
         .icon-btn {
             background: #222; border: 1px solid rgba(212, 175, 55, 0.5); color: #D4AF37;
-            padding: 8px 15px; border-radius: 8px; cursor: pointer; font-weight: 800;
+            padding: 5px 11px; border-radius: 7px; cursor: pointer; font-weight: 800; font-size: 13px;
         }
         .icon-btn:hover { background: #333; border-color: #D4AF37; transform: translateY(-2px); }
 
         .settings-btn-text {
-            padding: 6px 15px; font-size: 14px; font-weight: bold; cursor: pointer;
-            border-radius: 10px; background-color: #1e1e1e; color: #ffd700; border: 2px solid #ffd700;
+            padding: 4px 11px; font-size: 12px; font-weight: bold; cursor: pointer;
+            border-radius: 8px; background-color: #1e1e1e; color: #ffd700; border: 2px solid #ffd700;
             font-family: 'Cairo', sans-serif; transition: 0.2s;
         }
         .settings-btn-text:hover { background-color: #ffd700; color: #000; transform: translateY(-2px); }
 
         .random-teams-btn {
             background: linear-gradient(145deg, #ffffff, #e0e0e0); color: #111; border: none;
-            padding: 10px 20px; border-radius: 10px; font-weight: 900; cursor: pointer;
+            padding: 7px 14px; border-radius: 9px; font-weight: 900; font-size: 13px; cursor: pointer;
             box-shadow: 0 4px 10px rgba(255,255,255,0.1); animation: floatBtn 3s infinite ease-in-out;
         }
         .random-teams-btn:hover { transform: scale(1.03) translateY(-2px); }
@@ -126,13 +126,13 @@
         .settings-actions .save-scale-btn { background: #2e7d32; color: white; }
 
         #mainChatControls {
-            display: none; justify-content: center; gap: 15px;
-            margin-bottom: 15px; z-index: 100; position: relative; animation: fadeIn 0.5s;
+            display: none; justify-content: center; gap: 10px;
+            margin-bottom: 9px; z-index: 100; position: relative; animation: fadeIn 0.5s;
         }
         .chat-toggle-btn {
             position: relative; background-color: #1e1e1e; color: #ffd700;
-            border: 2px solid #ffd700; padding: 8px 20px; border-radius: 12px;
-            font-family: 'Cairo', sans-serif; font-weight: 900; font-size: 15px;
+            border: 2px solid #ffd700; padding: 5px 14px; border-radius: 9px;
+            font-family: 'Cairo', sans-serif; font-weight: 900; font-size: 12px;
             cursor: pointer; transition: background 0.2s, color 0.2s;
             box-shadow: 0 4px 10px rgba(0,0,0,0.5);
             display: flex; align-items: center; justify-content: center;
@@ -225,40 +225,89 @@
         .room-count { color: white; font-weight: bold; background: #111; padding: 5px; border-radius: 8px; display: inline-block;}
 
         .players-lobby {
-            width: 90%; max-width: 800px; min-height: 85px; margin: 0 auto 25px; padding: 20px;
+            width: 90%; max-width: 800px; min-height: 60px; margin: 0 auto 14px; padding: 11px;
             background: rgba(20,20,20,0.8); border: 1px solid rgba(212, 175, 55, 0.3);
-            border-radius: 18px; display: flex; flex-wrap: wrap; gap: 20px; justify-content: center;
+            border-radius: 14px; display: flex; flex-wrap: wrap; gap: 12px; justify-content: center;
         }
-        .player-card { display: flex; flex-direction: column; align-items: center; gap: 8px; position: relative; }
-        .player-avatar { width: 65px; height: 65px; border-radius: 50%; border: 2px solid #D4AF37; object-fit: cover; }
-        .player-name-label { font-size: 15px; color: #fff; font-weight: 900; background: rgba(0,0,0,0.6); padding: 2px 8px; border-radius: 6px; }
-        .crown-icon { position: absolute; top: -22px; font-size: 26px; z-index: 10; }
+        .player-card { display: flex; flex-direction: column; align-items: center; gap: 5px; position: relative; }
+        .player-avatar { width: 44px; height: 44px; border-radius: 50%; border: 2px solid #D4AF37; object-fit: cover; }
+        .player-name-label { font-size: 11px; color: #fff; font-weight: 900; background: rgba(0,0,0,0.6); padding: 1px 6px; border-radius: 6px; }
+        .crown-icon { position: absolute; top: -15px; font-size: 17px; z-index: 10; }
 
-        .teams-container { display: flex; justify-content: center; gap: 25px; flex-wrap: wrap; }
+        .teams-container { display: flex; justify-content: center; gap: 14px; flex-wrap: wrap; }
         .team {
-            display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; padding: 25px;
-            border-radius: 20px; background: rgba(30,30,30,0.8); border: 1px solid rgba(255,255,255,0.05);
+            display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; padding: 12px;
+            border-radius: 14px; background: rgba(30,30,30,0.8); border: 1px solid rgba(255,255,255,0.05);
         }
 
         .role-container { display: flex; flex-direction: column; align-items: center; }
-        .role-title { font-size: 17px; color: #D4AF37; margin-bottom: 12px; font-weight: 900; }
+        .role-title { font-size: 13px; color: #D4AF37; margin-bottom: 6px; font-weight: 900; }
         .role-box {
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             border-radius: 14px; cursor: pointer; font-weight: 900; color: white;
-            border: 2px solid rgba(255,255,255,0.2); gap: 6px; width: 100px; height: 100px;
+            border: 2px solid rgba(255,255,255,0.2); gap: 4px; width: 74px; height: 74px;
             background: rgba(40,40,40,0.9); overflow: hidden; position: relative;
         }
-        .role-box img { width: 50px; height: 50px; border-radius: 50%; border: 2px solid #fff; object-fit: cover; z-index: 2; }
-        .role-box span { position: relative; z-index: 2; font-size: 14px; }
+        .role-box img { width: 36px; height: 36px; border-radius: 50%; border: 2px solid #fff; object-fit: cover; z-index: 2; }
+        .role-box span { position: relative; z-index: 2; font-size: 11px; line-height: 1.1; max-width: 68px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .red-team .role-box { background: linear-gradient(135deg, #d32f2f, #a00000); }
         .blue-team .role-box { background: linear-gradient(135deg, #0288d1, #01579b); }
 
         .leave-role-btn {
-            background: #d32f2f; color: white; border: none; padding: 12px 25px;
-            font-family: 'Cairo'; font-weight: 900; border-radius: 12px; cursor: pointer;
-            margin-bottom: 20px; display: none; font-size: 16px;
+            background: #d32f2f; color: white; border: none; padding: 7px 16px;
+            font-family: 'Cairo'; font-weight: 900; border-radius: 9px; cursor: pointer;
+            margin-bottom: 10px; display: none; font-size: 13px;
         }
-        .random-teams-wrapper { margin: 15px 0; display: flex; justify-content: center; gap: 15px; flex-wrap: wrap; }
+        .random-teams-wrapper { margin: 8px 0; display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
+
+        /* ===== وضع المالك ===== */
+        .owner-login-btn {
+            margin-top: 14px; background: linear-gradient(145deg, #6a1b9a, #4a148c); color: #fff;
+            border: 2px solid #ce93d8; padding: 9px 22px; border-radius: 11px;
+            font-family: 'Cairo', sans-serif; font-weight: 900; font-size: 14px; cursor: pointer;
+        }
+        .owner-login-btn:hover { transform: translateY(-2px); }
+        .owner-mode-banner {
+            display: none; margin: 10px auto; max-width: 420px; padding: 7px 14px;
+            background: linear-gradient(145deg, #6a1b9a, #4a148c); color: #fff;
+            border: 2px solid #ce93d8; border-radius: 11px; font-weight: 900; font-size: 13px;
+        }
+        .delete-room-btn {
+            margin-top: 9px; width: 100%; background: #b71c1c; color: #fff; border: 2px solid #ff5252;
+            padding: 6px 0; border-radius: 8px; font-family: 'Cairo', sans-serif;
+            font-weight: 900; font-size: 13px; cursor: pointer;
+        }
+        .delete-room-btn:hover { background: #d32f2f; }
+        .wins-btn {
+            margin-right: 10px; background: linear-gradient(145deg, #00695c, #004d40); color: #fff;
+            border: 2px solid #4db6ac; padding: 9px 22px; border-radius: 11px;
+            font-family: 'Cairo', sans-serif; font-weight: 900; font-size: 15px; cursor: pointer;
+        }
+        .owner-tag {
+            display: inline-block; background: linear-gradient(145deg, #ffd700, #b9931e); color: #111;
+            font-size: 10px; font-weight: 900; padding: 1px 6px; border-radius: 5px; margin-left: 5px;
+        }
+        .wins-list { max-height: 55vh; overflow-y: auto; text-align: right; margin: 12px 0; }
+        .win-row {
+            background: rgba(255,255,255,0.05); border: 1px solid rgba(212,175,55,0.3);
+            border-radius: 10px; padding: 9px 12px; margin-bottom: 8px; font-size: 13px; color: #fff;
+        }
+        .win-row .win-side { color: #7CFC00; font-weight: 900; }
+        .win-row .lose-side { color: #ff6b6b; font-weight: 900; }
+        .win-row .win-meta { display: block; color: #999; font-size: 11px; margin-top: 4px; }
+
+        /* شريط انتظار عودة اللاعب المنقطع */
+        .reconnect-bar {
+            display: none; position: fixed; top: 8px; left: 50%; transform: translateX(-50%);
+            background: rgba(20,20,20,0.97); border: 2px solid #ff9800; color: #ffb74d;
+            padding: 7px 16px; border-radius: 11px; font-family: 'Cairo', sans-serif;
+            font-weight: 900; font-size: 13px; z-index: 4000; box-shadow: 0 4px 14px rgba(0,0,0,0.6);
+            white-space: nowrap;
+        }
+        .reconnect-bar .rc-count {
+            display: inline-block; background: #ff9800; color: #111; border-radius: 6px;
+            padding: 1px 8px; margin-left: 6px; font-weight: 900;
+        }
 
         .custom-alert-overlay, .victory-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -535,6 +584,41 @@
             <input type="text" id="playerName" placeholder="اكتب اسمك هنا...">
         </div>
         <button class="enter-btn" onclick="enterRooms()">دخول اللوبي</button>
+        <div>
+            <button class="owner-login-btn" onclick="openOwnerLogin()">🔑 دخول الملاك</button>
+        </div>
+        <div class="owner-mode-banner" id="ownerModeBanner">👑 أنت الآن في وضع المالك (مشاهد مخفي)</div>
+    </div>
+
+    <div class="custom-alert-overlay" id="ownerLoginModal">
+        <div class="custom-alert-box">
+            <h3 style="color:#ce93d8; margin-top:0;">🔑 دخول الملاك</h3>
+            <input type="password" id="ownerPassInput" placeholder="اكتب كلمة السر..."
+                   style="width:90%; margin-bottom:15px; font-size:16px; padding:12px;"
+                   onkeypress="if(event.key === 'Enter') submitOwnerLogin()">
+            <button class="enter-btn" style="width:100%; max-width:320px; padding:11px; font-size:17px;" onclick="submitOwnerLogin()">دخول</button>
+            <button onclick="closeOwnerLogin()" style="margin-top: 14px; background: #444; border-radius: 10px; padding: 8px 25px; font-family:'Cairo'; font-weight:bold; cursor:pointer; color:white; border:none; font-size:15px;">إلغاء</button>
+        </div>
+    </div>
+
+    <div class="custom-alert-overlay" id="winsModal">
+        <div class="custom-alert-box" style="max-width: 560px;">
+            <h3 style="color:#4db6ac; margin-top:0;">🏆 كشف الفوزات</h3>
+            <div class="wins-list" id="winsList"></div>
+            <button onclick="closeWinsModal()" style="background: #444; border-radius: 10px; padding: 8px 25px; font-family:'Cairo'; font-weight:bold; cursor:pointer; color:white; border:none; font-size:15px;">إغلاق</button>
+        </div>
+    </div>
+
+    <div class="custom-alert-overlay" id="confirmDeleteModal">
+        <div class="custom-alert-box">
+            <p id="confirmDeleteText" style="color:#fff;"></p>
+            <button onclick="confirmDeleteRoom()" style="background:#b71c1c; color:#fff; border:2px solid #ff5252; border-radius:10px; padding:9px 26px; font-family:'Cairo'; font-weight:900; cursor:pointer; font-size:15px;">نعم، احذفها</button>
+            <button onclick="closeConfirmDelete()" style="margin-right: 10px; background: #444; border-radius: 10px; padding: 9px 26px; font-family:'Cairo'; font-weight:bold; cursor:pointer; color:white; border:none; font-size:15px;">إلغاء</button>
+        </div>
+    </div>
+
+    <div class="reconnect-bar" id="reconnectBar">
+        <span id="reconnectText"></span><span class="rc-count" id="reconnectCount">30</span>
     </div>
 
     <div id="roomsScreen">
@@ -545,6 +629,7 @@
         <div id="roomsGrid" class="rooms-container"></div>
         <div style="margin-top: 40px;">
             <button class="enter-btn" onclick="showCreateRoomModal()">إنشاء غرفة جديدة</button>
+            <button class="wins-btn" id="winsRevealBtn" style="display:none;" onclick="openWinsModal()">🏆 كشف الفوزات</button>
         </div>
     </div>
 
@@ -556,7 +641,7 @@
             <button class="icon-btn" style="background:#a00000; color:white; border-color:#ff4444;" onclick="exitRoom()">🚪 خروج</button>
         </div>
 
-        <div id="mainChatControls" style="margin-bottom: 25px;">
+        <div id="mainChatControls" style="margin-bottom: 12px;">
             <button class="chat-toggle-btn" onclick="openChatWindow('global')">
                 شات عام
                 <span id="notif-global" class="chat-notif"></span>
@@ -567,7 +652,7 @@
             </button>
         </div>
 
-        <h3 style="color: #32CD32; margin-bottom: 15px; font-size: 24px;">المتواجدين</h3>
+        <h3 style="color: #32CD32; margin-bottom: 8px; font-size: 16px;">المتواجدين</h3>
         <div class="players-lobby" id="playersLobby"></div>
 
         <div class="random-teams-wrapper">
@@ -575,7 +660,7 @@
             <button class="random-teams-btn" id="randomTeamsBtn" onclick="randomizeTeams()" style="display:none;">تيمات عشوائيه</button>
         </div>
 
-        <h2 style="margin-top: 5px;">اختر فريقك ودورك</h2>
+        <h2 style="margin-top: 3px; margin-bottom: 10px; font-size: 18px;">اختر فريقك ودورك</h2>
 
         <div class="teams-container">
             <div id="redTeamContainer" class="team red-team mode-2v2"></div>
@@ -596,6 +681,7 @@
                 <span id="privateChatNameGame">شات الفريق</span>
                 <span id="notif-private-game" class="chat-notif"></span>
             </button>
+            <button class="icon-btn" id="ownerExitGameBtn" style="display:none; background:#a00000; color:white; border-color:#ff4444;" onclick="exitRoom()">🚪 خروج</button>
         </div>
 
         <div class="game-layout">
@@ -706,6 +792,37 @@
         // فترة تهدئة بعد إلغاء اللعبة حتى لا تتكرر الرسالة أو يُعاد الإلغاء أثناء التنظيف
         let cancelCooldownUntil = 0;
         let lastHandledCancelTs = 0;
+
+        // ===== وضع مالك الموقع (مشاهد مخفي بصلاحيات) =====
+        const OWNER_PASSWORD = 'SMO';
+        let isSiteOwner = false;              // هل المستخدم الحالي مالك للموقع؟
+        let mySpectatorId = null;             // معرّف المشاهد داخل الغرفة (منفصل عن اللاعبين)
+        let SPECTATORS_REF = null;
+        const WINS_REF = db.ref('/winsHistory');
+
+        // ===== مهلة عودة اللاعب المنقطع =====
+        const RECONNECT_SECONDS = 30;
+        let PENDING_DC_REF = null;            // game/pendingDisconnect
+        let reconnectInterval = null;         // مؤقّت العد التنازلي المحلي
+        let lastKnownPlayers = {};            // لقطة أسماء اللاعبين قبل الحذف (لمعرفة من غادر)
+        let pendingDisconnectData = null;     // نسخة محلية من بيانات الانتظار
+        let pendingDeleteRoomId = null;       // الغرفة المنتظر تأكيد حذفها
+
+        function openOwnerLogin() {
+            document.getElementById('ownerPassInput').value = '';
+            document.getElementById('ownerLoginModal').style.display = 'flex';
+        }
+        function closeOwnerLogin() {
+            document.getElementById('ownerLoginModal').style.display = 'none';
+        }
+        function submitOwnerLogin() {
+            const val = document.getElementById('ownerPassInput').value;
+            if (val !== OWNER_PASSWORD) { showAlert('كلمة السر غير صحيحة'); return; }
+            isSiteOwner = true;
+            closeOwnerLogin();
+            document.getElementById('ownerModeBanner').style.display = 'block';
+            showAlert('تم تفعيل وضع المالك ✓ تدخل الغرف كمشاهد مخفي');
+        }
         let pendingTimers = [];
         let isLeavingRoom = false;
 
@@ -923,12 +1040,19 @@
             if (CHATS_REF) CHATS_REF.off();
             if (CANCEL_REF) CANCEL_REF.off();
             if (GLOBAL_CHAT_REF) GLOBAL_CHAT_REF.off();
+            if (PENDING_DC_REF) PENDING_DC_REF.off();
+            if (SPECTATORS_REF) SPECTATORS_REF.off();
+            if (GAME_REF) GAME_REF.child('roomDeleted').off();
             gameListenersAttached = false;
             chatListenersAttached = false;
         }
 
         function cleanupOrphanRoles() {
             if (!CURRENT_ROOM_ID || !ROLES_REF) return;
+            if (isSiteOwner) return;   // المالك مشاهد ولا يكتب في الأدوار
+            // أثناء انتظار عودة لاعب منقطع نُبقي مقعده محجوزاً له
+            if (pendingDisconnectData && pendingDisconnectData.active) return;
+            if (gameStartedFlag) return;  // أثناء اللعب لا نُفرّغ المقاعد، تتكفل بها مهلة العودة
             const players = gameState.players || {};
             const roles = gameState.roles || {};
             const updates = {};
@@ -952,23 +1076,114 @@
                 const room = allRoomsData[rId];
                 const pCount = room.game && room.game.players ? Object.keys(room.game.players).length : 0;
                 const isFull = pCount >= room.maxPlayers;
+                // المالك يدخل حتى لو كانت ممتلئة، ويرى زر الحذف
+                const deleteBtn = isSiteOwner
+                    ? `<button class="delete-room-btn" onclick="deleteRoomCompletely(event, '${rId}')">🗑 حذف</button>`
+                    : '';
                 container.innerHTML += `
-                    <div class="room-card ${isFull ? 'full-room' : ''}" onclick="attemptJoinRoom('${rId}')">
+                    <div class="room-card ${isFull && !isSiteOwner ? 'full-room' : ''}" onclick="attemptJoinRoom('${rId}')">
                         <div class="room-title" title="${room.name}">${room.name}</div>
                         <div class="room-count">${pCount} / ${room.maxPlayers} ${isFull ? '(ممتلئ)' : ''}</div>
+                        ${deleteBtn}
                     </div>
                 `;
             }
         }
 
+        // حذف غرفة نهائياً من النظام بكل ما يتعلق بها
+        function deleteRoomCompletely(event, rId) {
+            if (event) event.stopPropagation();
+            if (!isSiteOwner) return;
+            const room = allRoomsData[rId] || {};
+            pendingDeleteRoomId = rId;
+            document.getElementById('confirmDeleteText').innerText =
+                `هل تريد حذف غرفة "${room.name || rId}" نهائياً؟ سيتم إخراج كل من فيها وحذف كل بياناتها.`;
+            document.getElementById('confirmDeleteModal').style.display = 'flex';
+        }
+
+        function closeConfirmDelete() {
+            document.getElementById('confirmDeleteModal').style.display = 'none';
+            pendingDeleteRoomId = null;
+        }
+
+        function confirmDeleteRoom() {
+            const rId = pendingDeleteRoomId;
+            closeConfirmDelete();
+            if (!rId) return;
+            // إشعار من بالداخل أن الغرفة حُذفت، ثم إزالة الغرفة كاملة
+            db.ref(`/rooms/${rId}/game/roomDeleted`).set(true).catch(() => {});
+            setTimeout(() => {
+                ROOMS_REF.child(rId).remove()
+                    .then(() => showAlert('تم حذف الغرفة نهائياً ✓'))
+                    .catch(err => showAlert('تعذر حذف الغرفة: ' + err.message));
+            }, 600);
+        }
+
+        // ===== كشف الفوزات =====
+        function openWinsModal() {
+            const list = document.getElementById('winsList');
+            list.innerHTML = '<div style="color:#999;">جاري التحميل...</div>';
+            document.getElementById('winsModal').style.display = 'flex';
+            WINS_REF.limitToLast(30).once('value', (snap) => {
+                const data = snap.val() || {};
+                const rows = Object.keys(data).map(k => data[k]).sort((a, b) => (b.ts || 0) - (a.ts || 0));
+                if (!rows.length) { list.innerHTML = '<div style="color:#999;">لا توجد نتائج مسجلة بعد</div>'; return; }
+                list.innerHTML = rows.map(r => {
+                    const w = (r.winners || []).join(' و ') || '—';
+                    const l = (r.losers || []).join(' و ') || '—';
+                    const when = r.ts ? new Date(r.ts).toLocaleString('ar-EG') : '';
+                    const extra = r.reason === 'black' ? ' (بالكلمة السوداء)' : (r.reason === 'surrender' ? ' (انسحاب)' : '');
+                    return `<div class="win-row">
+                        <span class="win-side">${w}</span> ← انتصروا على ← <span class="lose-side">${l}</span>${extra}
+                        <span class="win-meta">${r.room || ''} • ${when}</span>
+                    </div>`;
+                }).join('');
+            }).catch(() => { list.innerHTML = '<div style="color:#ff6b6b;">تعذر تحميل النتائج</div>'; });
+        }
+        function closeWinsModal() { document.getElementById('winsModal').style.display = 'none'; }
+
+        // تسجيل نتيجة الجولة (يكتبها مالك الغرفة المنطقي فقط لتفادي التكرار)
+        function recordWin(winningTeam, reason) {
+            if (isSiteOwner || !currentPlayer.isOwner || !CURRENT_ROOM_ID) return;
+            const config = gameModes[currentMode];
+            const nameOf = (rid) => {
+                const pid = gameState.roles[rid];
+                const p = pid ? gameState.players[pid] : null;
+                return p ? p.name : null;
+            };
+            const collect = (team) => {
+                const out = [];
+                for (let i = 1; i <= config.writers; i++) { const n = nameOf(`${team}Writer_${i}`); if (n) out.push(n); }
+                for (let i = 1; i <= config.guessers; i++) { const n = nameOf(`${team}Guesser_${i}`); if (n) out.push(n); }
+                return out;
+            };
+            const loser = winningTeam === 'red' ? 'blue' : 'red';
+            const winners = collect(winningTeam);
+            const losers = collect(loser);
+            if (!winners.length && !losers.length) return;
+            const roomName = (allRoomsData[CURRENT_ROOM_ID] || {}).name || '';
+            try {
+                WINS_REF.push({
+                    winners: winners, losers: losers, team: winningTeam,
+                    room: roomName, reason: reason || 'normal', ts: Date.now()
+                });
+            } catch (e) { /* تجاهل أخطاء التسجيل حتى لا تعطل اللعبة */ }
+        }
+
         function enterRooms() {
             let nameInput = document.getElementById('playerName').value.trim();
             nameInput = nameInput.replace(/أ|إ|آ/g, 'ا').replace(/ة/g, 'ه');
-            if (nameInput === '' || !currentPlayer.avatar) { showAlert('الرجاء كتابة اسمك واختيار صورة الأفتار أولا !'); return; }
+            // المالك مشاهد مخفي: يكفيه الاسم بدون أفتار
+            if (isSiteOwner) {
+                if (nameInput === '') { showAlert('الرجاء كتابة اسمك أولاً !'); return; }
+            } else if (nameInput === '' || !currentPlayer.avatar) {
+                showAlert('الرجاء كتابة اسمك واختيار صورة الأفتار أولا !'); return;
+            }
             currentPlayer.name = nameInput;
 
             document.getElementById('nameScreen').style.display = 'none';
             document.getElementById('roomsScreen').style.display = 'block';
+            document.getElementById('winsRevealBtn').style.display = isSiteOwner ? 'inline-block' : 'none';
             renderRoomsList();
         }
 
@@ -1010,8 +1225,10 @@
 
         function attemptJoinRoom(rId) {
             const room = allRoomsData[rId];
+            if (!room) { showAlert('هذه الغرفة لم تعد موجودة'); return; }
             const pCount = room.game && room.game.players ? Object.keys(room.game.players).length : 0;
-            if (pCount >= room.maxPlayers) { showAlert('الغرفة ممتلئة'); return; }
+            // المالك مشاهد مخفي: لا يُحسب ضمن العدد ولا تمنعه الغرفة الممتلئة
+            if (!isSiteOwner && pCount >= room.maxPlayers) { showAlert('الغرفة ممتلئة'); return; }
 
             detachRoomListeners();
             clearLocalGameState();
@@ -1028,6 +1245,8 @@
             COUNTDOWN_REF = GAME_REF.child('countdown');
             CHATS_REF = GAME_REF.child('chats');
             CANCEL_REF = GAME_REF.child('cancel');
+            SPECTATORS_REF = GAME_REF.child('spectators');
+            PENDING_DC_REF = GAME_REF.child('pendingDisconnect');
             // الشات العام على مستوى الغرفة (خارج /game) فلا يتأثر بحذف بيانات اللعبة
             GLOBAL_CHAT_REF = db.ref(`/rooms/${rId}/globalChat`);
 
@@ -1036,12 +1255,31 @@
             cancelMessageShown = false;
             roomJoinedAt = Date.now();
 
+            // ===== دخول المالك كمشاهد مخفي: لا يُسجَّل ضمن اللاعبين إطلاقاً =====
+            if (isSiteOwner) {
+                myPlayerId = null;
+                currentPlayer.isOwner = false;
+                currentPlayer.currentRoleId = null;
+                const specRef = SPECTATORS_REF.push();
+                mySpectatorId = specRef.key;
+                specRef.set({ name: currentPlayer.name, ts: Date.now() }).then(() => {
+                    specRef.onDisconnect().remove();
+                    attachGameListeners();
+                    document.getElementById('roomsScreen').style.display = 'none';
+                    document.getElementById('rolesScreen').style.display = 'block';
+                    updateLobbyUI(); buildRolesUI(); initializeChats(); applyOwnerViewMode();
+                }).catch(err => { showAlert('خطأ في الاتصال: ' + err.message); });
+                return;
+            }
+
             const newPlayerRef = PLAYERS_REF.push();
             myPlayerId = newPlayerRef.key;
             const playerData = { name: currentPlayer.name, avatar: currentPlayer.avatar, isOwner: false, currentRoleId: null };
 
             newPlayerRef.set(playerData).then(() => {
                 newPlayerRef.onDisconnect().remove();
+                // إن كان هناك لاعب منقطع ينتظر العودة ونفس الاسم، أعِد ربطه بدوره وأكمل الجولة
+                tryResumeDisconnectedSeat();
                 PLAYERS_REF.once('value', (snap) => {
                     const players = snap.val() || {}; const keys = Object.keys(players);
                     if (keys.length === 1) {
@@ -1068,25 +1306,31 @@
         }
 
         function exitRoomFromKick(reason) {
-            if (!CURRENT_ROOM_ID && !myPlayerId) return; // خرجنا بالفعل
+            if (!CURRENT_ROOM_ID && !myPlayerId && !mySpectatorId) return; // خرجنا بالفعل
 
-            // هل كان اللاعب داخل لعبة شغالة؟ إذا نعم ولم يصلنا سبب، فالسبب الافتراضي هو انقطاع اتصال أحد اللاعبين
-            const wasInGame = gameStartedFlag || document.getElementById('gameScreen').style.display === 'flex';
+            // المالك مشاهد: لا تظهر له رسائل إلغاء الجولة عند الخروج
+            const wasInGame = !isSiteOwner &&
+                (gameStartedFlag || document.getElementById('gameScreen').style.display === 'flex');
             const msg = reason || (wasInGame ? CANCEL_MSG_DISCONNECT : null);
             const alertAlreadyShown = cancelMessageShown;
 
             roomSessionId++;
             clearPendingTimers();
+            hideReconnectBar();
+            pendingDisconnectData = null;
+            lastKnownPlayers = {};
 
             document.getElementById('rolesScreen').style.display = 'none';
             document.getElementById('gameScreen').style.display = 'none';
             document.getElementById('roomsScreen').style.display = 'block';
             document.body.classList.remove('game-active');
-            
+            document.getElementById('winsRevealBtn').style.display = isSiteOwner ? 'inline-block' : 'none';
+
             CURRENT_ROOM_ID = null;
             currentPlayer.currentRoleId = null;
             currentPlayer.isOwner = false;
             myPlayerId = null;
+            mySpectatorId = null;
             activeChatType = null;
             clearInterval(countdownInterval);
             countdownInterval = null;
@@ -1099,6 +1343,19 @@
         }
 
         function exitRoom() {
+            // خروج المالك المشاهد لا يؤثر على الجولة الجارية إطلاقاً
+            if (isSiteOwner) {
+                if (mySpectatorId && SPECTATORS_REF) {
+                    const sRef = SPECTATORS_REF.child(mySpectatorId);
+                    sRef.onDisconnect().cancel();
+                    sRef.remove().catch(() => {});
+                }
+                mySpectatorId = null;
+                hideReconnectBar();
+                exitRoomFromKick(null);
+                return;
+            }
+
             const wasInGame = gameStartedFlag || document.getElementById('gameScreen').style.display === 'flex';
 
             if (wasInGame && GAME_REF) {
@@ -1151,10 +1408,32 @@
                 cancelGame(data.reason || CANCEL_MSG_DISCONNECT, true);
             });
 
+            // إشعار حذف الغرفة من قبل مالك الموقع
+            GAME_REF.child('roomDeleted').on('value', (snap) => {
+                if (snap.val() === true) {
+                    hideReconnectBar();
+                    gameCancelled = true;
+                    exitRoomFromKick('تم حذف هذه الغرفة من قبل الإدارة.');
+                }
+            });
+
+            // فترة انتظار عودة لاعب منقطع
+            PENDING_DC_REF.on('value', (snap) => {
+                pendingDisconnectData = snap.val();
+                if (pendingDisconnectData && pendingDisconnectData.active) {
+                    renderReconnectBar(pendingDisconnectData);
+                } else {
+                    hideReconnectBar();
+                }
+            });
+
             PLAYERS_REF.on('value', (snap) => {
-                gameState.players = snap.val() || {};
+                const incoming = snap.val() || {};
+                // احتفظ بأسماء من كان موجوداً حتى نعرف اسم من ينقطع لاحقاً
+                for (const pid in incoming) { lastKnownPlayers[pid] = { name: incoming[pid].name }; }
+                gameState.players = incoming;
                 cleanupOrphanRoles();
-                
+
                 if (myPlayerId && (!gameState.players || !gameState.players[myPlayerId])) {
                     // أُزلت من الغرفة (طرد/انقطاع) — تظهر رسالة الإلغاء إن كانت اللعبة شغالة
                     exitRoomFromKick();
@@ -1217,7 +1496,7 @@
                 document.getElementById('blueScore').innerText = blueWordsLeft;
 
                 if (data.winner && !victoryShown) {
-                    victoryShown = true; const isBlack = data.blackWordWinner || false; showVictory(data.winner, isBlack);
+                    victoryShown = true; const isBlack = data.blackWordWinner || false; showVictory(data.winner, isBlack, data.bySurrender || false);
                 } else if (!data.winner) { victoryShown = false; }
 
                 if (data.gameStarted === true) {
@@ -1228,6 +1507,7 @@
                     document.body.classList.add('game-active');
                     updateTurnUI(); updateWriterMode();
                     document.getElementById('surrenderSettingsBtn').style.display = 'inline-block';
+                    applyOwnerViewMode();
                 } else {
                     gameStartedFlag = false;
                     if (document.getElementById('gameScreen').style.display === 'flex') {
@@ -1291,6 +1571,18 @@
         }
 
         function resetGame() {
+            if (isSiteOwner) {
+                // المالك مشاهد: ينظّف واجهته فقط دون الكتابة في قاعدة البيانات
+                gameStartedFlag = false;
+                clearPendingTimers();
+                document.getElementById('victoryOverlay').style.display = 'none';
+                document.getElementById('gameScreen').style.display = 'none';
+                document.getElementById('rolesScreen').style.display = 'block';
+                document.body.classList.remove('game-active');
+                clearLocalGameState({ stayInRoom: true });
+                applyOwnerViewMode();
+                return;
+            }
             if(CURRENT_ROOM_ID) {
                 gameStartedFlag = false;
                 clearInterval(countdownInterval);
@@ -1301,7 +1593,7 @@
                 if (currentPlayer.isOwner) {
                     purgeGameData(GAME_REF, true).then(() => {
                         if (!CURRENT_ROOM_ID) return;
-                        STATE_REF.set({ mode: currentMode, gameStarted: false, winner: '', blackWordWinner: false, currentTurn: '', redWordsLeft: 9, blueWordsLeft: 8 });
+                        STATE_REF.set({ mode: currentMode, gameStarted: false, winner: '', blackWordWinner: false, bySurrender: false, currentTurn: '', redWordsLeft: 9, blueWordsLeft: 8 });
                         CLUE_REF.set({ word: '', num: '-' });
                         COUNTDOWN_REF.set({ value: 3, isRunning: false });
                     });
@@ -1339,7 +1631,8 @@
                 chats: null,
                 roles: null,
                 countdown: null,
-                cancel: null
+                cancel: null,
+                pendingDisconnect: null
             }).catch(() => {});
         }
 
@@ -1360,10 +1653,11 @@
                 board: null,
                 roles: null,
                 chats: null,
+                pendingDisconnect: null,
                 clue: { word: '', num: '-' },
                 winner: null,
                 countdown: { value: 3, isRunning: false },
-                state: { mode: modeSnapshot, gameStarted: false, winner: '', blackWordWinner: false, currentTurn: '', redWordsLeft: 9, blueWordsLeft: 8 }
+                state: { mode: modeSnapshot, gameStarted: false, winner: '', blackWordWinner: false, bySurrender: false, currentTurn: '', redWordsLeft: 9, blueWordsLeft: 8 }
             }).catch(() => {});
 
             setTimeout(() => {
@@ -1385,6 +1679,7 @@
             clearInterval(countdownInterval);
             countdownInterval = null;
             clearPendingTimers();
+            hideReconnectBar();
             gameStartedFlag = false;
 
             if (!alreadyBroadcast) broadcastCancel(reason);
@@ -1420,8 +1715,121 @@
             }, 3000);
         }
 
+        // ===================== مهلة عودة اللاعب المنقطع =====================
+
+        // إعادة ربط اللاعب العائد بنفس دوره إن كان اسمه مطابقاً للمنقطع
+        function tryResumeDisconnectedSeat() {
+            if (!PENDING_DC_REF || isSiteOwner || !myPlayerId) return;
+            PENDING_DC_REF.once('value', (snap) => {
+                const info = snap.val();
+                if (!info || !info.active) return;
+                if (Date.now() > (info.deadline || 0)) return;      // انتهت المهلة
+                if ((info.name || '') !== currentPlayer.name) return; // ليس نفس اللاعب
+                if (!myPlayerId || !ROLES_REF) return;
+
+                const updates = {};
+                (info.roles || []).forEach(rid => { updates[rid] = myPlayerId; });
+                if (!Object.keys(updates).length) return;
+
+                ROLES_REF.update(updates).then(() => {
+                    const firstRole = (info.roles || [])[0] || null;
+                    currentPlayer.currentRoleId = firstRole;
+                    if (firstRole) PLAYERS_REF.child(myPlayerId).update({ currentRoleId: firstRole }).catch(() => {});
+                    PENDING_DC_REF.remove().catch(() => {});
+                    showAlert('تم استئناف الجولة، مرحباً بعودتك 👋');
+                }).catch(() => {});
+            });
+        }
+
+        // إخفاء كل أدوات اللعب عن المالك وإظهار أدوات المشاهدة
+        function applyOwnerViewMode() {
+            if (!isSiteOwner) return;
+            const hide = (id) => { const el = document.getElementById(id); if (el) el.style.display = 'none'; };
+            hide('leaveBtn');
+            hide('randomTeamsBtn');
+            hide('surrenderSettingsBtn');
+            hide('writerInputArea');
+            hide('guesserClueArea');
+            hide('privateChatBtnWrapper');
+            hide('privateChatBtnWrapperGame');
+            const exitBtn = document.getElementById('ownerExitGameBtn');
+            if (exitBtn) exitBtn.style.display = 'inline-block';
+            // المالك يرى ألوان البطاقات الحقيقية مثل الكاتب
+            const grid = document.getElementById('cardsGrid');
+            if (grid) grid.classList.add('writer-mode');
+        }
+
+        function hideReconnectBar() {
+            if (reconnectInterval) { clearInterval(reconnectInterval); reconnectInterval = null; }
+            const bar = document.getElementById('reconnectBar');
+            if (bar) bar.style.display = 'none';
+        }
+
+        // عرض الشريط وتحديث العداد كل ثانية
+        function renderReconnectBar(info) {
+            const bar = document.getElementById('reconnectBar');
+            if (!info || !info.active) { hideReconnectBar(); return; }
+
+            document.getElementById('reconnectText').innerText =
+                `${info.name || 'أحد اللاعبين'} غادر — سيتم إلغاء الجولة إن لم يعد خلال`;
+            bar.style.display = 'block';
+
+            const tick = () => {
+                if (!pendingDisconnectData || !pendingDisconnectData.active) { hideReconnectBar(); return; }
+                const left = Math.max(0, Math.ceil((pendingDisconnectData.deadline - Date.now()) / 1000));
+                document.getElementById('reconnectCount').innerText = left;
+                if (left <= 0) {
+                    hideReconnectBar();
+                    // صاحب الغرفة فقط ينهي الجولة حتى لا تتكرر العملية
+                    if (currentPlayer.isOwner && !isSiteOwner && !gameCancelled) {
+                        if (PENDING_DC_REF) PENDING_DC_REF.remove().catch(() => {});
+                        cancelGame(CANCEL_MSG_DISCONNECT);
+                    }
+                }
+            };
+            if (reconnectInterval) clearInterval(reconnectInterval);
+            tick();
+            reconnectInterval = setInterval(tick, 500);
+        }
+
+        // بدء فترة الانتظار عند فقدان لاعب أثناء اللعب
+        function beginReconnectGrace(missing) {
+            if (!PENDING_DC_REF || !missing) return;
+            PENDING_DC_REF.transaction(current => {
+                if (current && current.active) return;   // فترة انتظار جارية بالفعل
+                return {
+                    active: true,
+                    name: missing.name,
+                    roles: missing.roles,
+                    deadline: Date.now() + RECONNECT_SECONDS * 1000,
+                    ts: Date.now()
+                };
+            }).catch(() => {});
+        }
+
+        // تحديد اللاعب المفقود اعتماداً على الأدوار المعلّقة واللقطة السابقة للأسماء
+        function findMissingSeat() {
+            const roles = gameState.roles || {};
+            const players = gameState.players || {};
+            const byPlayer = {};
+            for (const roleId in roles) {
+                const pid = roles[roleId];
+                if (pid && !players[pid]) {
+                    if (!byPlayer[pid]) byPlayer[pid] = [];
+                    byPlayer[pid].push(roleId);
+                }
+            }
+            const ids = Object.keys(byPlayer);
+            if (!ids.length) return null;
+            const pid = ids[0];
+            const known = lastKnownPlayers[pid];
+            return { name: (known && known.name) || 'أحد اللاعبين', roles: byPlayer[pid] };
+        }
+
         function checkPlayersIntegrity() {
             if (!CURRENT_ROOM_ID || !STATE_REF) return;
+            // المالك مشاهد فقط: لا يحذف غرفاً ولا يلغي جولات
+            if (isSiteOwner) return;
             const currentPlayersCount = Object.keys(gameState.players || {}).length;
 
             if (currentPlayersCount === 0) {
@@ -1449,7 +1857,14 @@
                 if (Date.now() < cancelCooldownUntil) return;
                 const required = gameModes[currentMode].total;
 
-                if (currentPlayersCount < required) { cancelGame(CANCEL_MSG_DISCONNECT); return; }
+                // بدل إلغاء الجولة فوراً: امنح اللاعب المنقطع مهلة للعودة
+                const missing = findMissingSeat();
+                if (missing) { beginReconnectGrace(missing); return; }
+                if (currentPlayersCount < required) {
+                    // نقص لاعب بلا دور معلّق (نادر) — امنح مهلة عامة أيضاً
+                    beginReconnectGrace({ name: 'أحد اللاعبين', roles: [] });
+                    return;
+                }
                 for (const roleId in gameState.roles) {
                     const playerId = gameState.roles[roleId];
                     if (playerId && !gameState.players[playerId]) { cancelGame(CANCEL_MSG_DISCONNECT); return; }
@@ -1507,6 +1922,13 @@
             const privName = getPrivateChatName();
             document.getElementById('privateChatName').innerText = privName;
             document.getElementById('privateChatNameGame').innerText = privName;
+
+            // المالك: الشات العام فقط (لا شات فرق لأنه بلا دور)
+            if (isSiteOwner) {
+                document.getElementById('privateChatBtnWrapper').style.display = 'none';
+                document.getElementById('privateChatBtnWrapperGame').style.display = 'none';
+                return;
+            }
 
             let isWriter = currentPlayer.currentRoleId && currentPlayer.currentRoleId.includes('Writer');
             let isGuesser = currentPlayer.currentRoleId && currentPlayer.currentRoleId.includes('Guesser');
@@ -1599,14 +2021,19 @@
 
         function renderChatMessage(msg) {
             const chatContainer = document.getElementById('chatMessagesArea');
-            const isMe = (msg.id === myPlayerId);
-            
+            const myId = isSiteOwner ? ('owner_' + (mySpectatorId || '')) : myPlayerId;
+            const isMe = (msg.id === myId);
+            const ownerTag = msg.isSiteOwner ? '<span class="owner-tag">أحد الملاك</span>' : '';
+            const avatarHtml = msg.avatar
+                ? `<img src="${msg.avatar}" class="msg-avatar">`
+                : `<div class="msg-avatar" style="display:flex;align-items:center;justify-content:center;background:#4a148c;color:#fff;font-size:15px;">👑</div>`;
+
             const msgDiv = document.createElement('div');
             msgDiv.className = `msg-row ${isMe ? 'my-msg' : ''}`;
             msgDiv.innerHTML = `
-                <img src="${msg.avatar}" class="msg-avatar">
+                ${avatarHtml}
                 <div class="msg-bubble">
-                    ${!isMe ? `<span class="msg-sender-name">${msg.name}</span>` : ''}
+                    <span class="msg-sender-name">${msg.name}${ownerTag}</span>
                     ${msg.text}
                 </div>
             `;
@@ -1630,10 +2057,11 @@
             if (!targetRef) return;
 
             targetRef.push({
-                id: myPlayerId,
+                id: isSiteOwner ? ('owner_' + (mySpectatorId || '')) : myPlayerId,
                 name: currentPlayer.name,
-                avatar: currentPlayer.avatar,
+                avatar: currentPlayer.avatar || '',
                 text: text,
+                isSiteOwner: !!isSiteOwner,
                 timestamp: firebase.database.ServerValue.TIMESTAMP
             });
             input.value = '';
@@ -1702,6 +2130,7 @@
         }
 
         function selectRole(roleId) {
+            if (isSiteOwner) { showAlert('أنت في وضع المالك: المشاهدة فقط'); return; }
             if (!myPlayerId) return;
             const existingPlayerId = gameState.roles[roleId];
             if (existingPlayerId && existingPlayerId !== null && existingPlayerId !== undefined) {
@@ -1719,6 +2148,7 @@
 
         function leaveRole() {
             if (!myPlayerId || !currentPlayer.currentRoleId) return;
+            if (isSiteOwner) return;
             ROLES_REF.child(currentPlayer.currentRoleId).set(null); PLAYERS_REF.child(myPlayerId).update({ currentRoleId: null });
             currentPlayer.currentRoleId = null; document.getElementById('leaveBtn').style.display = 'none';
             COUNTDOWN_REF.update({ isRunning: false }); document.getElementById('countdownText').style.display = 'none';
@@ -1726,6 +2156,7 @@
         }
 
         function randomizeTeams() {
+            if (isSiteOwner) { showAlert('أنت في وضع المالك: المشاهدة فقط'); return; }
             if (!currentPlayer.isOwner) { showAlert('فقط المالك يمكنه استخدام هذه الميزة'); return; }
             const playerIds = Object.keys(gameState.players);
             if (playerIds.length < 2) { showAlert('لا يوجد عدد كافٍ من اللاعبين لإعادة التوزيع'); return; }
@@ -1750,6 +2181,7 @@
         }
 
         function checkIfLobbyFull() {
+            if (isSiteOwner) return;
             const config = gameModes[currentMode]; let filledCount = 0;
             for (const rId in gameState.roles) { if (gameState.roles[rId]) filledCount++; }
             STATE_REF.child('gameStarted').once('value', (snap) => {
@@ -1760,6 +2192,7 @@
         }
 
         function startCountdown() {
+            if (isSiteOwner) return;
             COUNTDOWN_REF.once('value', (snap) => {
                 const data = snap.val() || { value: 3, isRunning: false };
                 if (data.isRunning) return;
@@ -1773,6 +2206,7 @@
         }
 
         function startCoreGame() {
+            if (isSiteOwner) return;
             if (gameStartedFlag) return;
             gameStartedFlag = true;
 
@@ -1811,7 +2245,7 @@
         }
 
         function initGameState() {
-            STATE_REF.update({ currentTurn: 'redWriter', redWordsLeft: 9, blueWordsLeft: 8, gameStarted: true, winner: '', blackWordWinner: false });
+            STATE_REF.update({ currentTurn: 'redWriter', redWordsLeft: 9, blueWordsLeft: 8, gameStarted: true, winner: '', blackWordWinner: false, bySurrender: false });
             CLUE_REF.set({ word: '', num: '-' }); WINNER_REF.set(''); victoryShown = false; gameCancelled = false;
 
             document.getElementById('rolesScreen').style.display = 'none'; document.getElementById('gameScreen').style.display = 'flex';
@@ -1821,6 +2255,7 @@
 
         function updateWriterMode() {
             const grid = document.getElementById('cardsGrid');
+            if (isSiteOwner) { grid.classList.add('writer-mode'); return; }
             if (currentPlayer.currentRoleId && currentPlayer.currentRoleId.includes('Writer')) grid.classList.add('writer-mode');
             else grid.classList.remove('writer-mode');
         }
@@ -1830,7 +2265,8 @@
             if (!words || words.length === 0) {
                 grid.innerHTML = '<div style="color:#888;font-size:24px;grid-column:1/6;grid-row:1/6;display:flex;align-items:center;justify-content:center;">جاري تجهيز اللوحة...</div>'; return;
             }
-            const isWriter = currentPlayer.currentRoleId && currentPlayer.currentRoleId.includes('Writer');
+            // المالك يرى كل الألوان مثل الكاتب (مشاهدة كاملة لما يجري)
+            const isWriter = isSiteOwner || (currentPlayer.currentRoleId && currentPlayer.currentRoleId.includes('Writer'));
             let html = '';
             for (let i = 0; i < 25; i++) {
                 const word = words[i] || '?'; const color = colors[i] || 'word-neutral';
@@ -1838,7 +2274,7 @@
                 let displayClass = 'hidden-color';
                 if (rev) { displayClass = color; } else if (isWriter) { displayClass = color; }
                 const revealedClass = rev ? 'revealed' : '';
-                const btnDisplay = (currentPlayer.currentRoleId && currentPlayer.currentRoleId.includes('Guesser') && !rev) ? 'block' : 'none';
+                const btnDisplay = (!isSiteOwner && currentPlayer.currentRoleId && currentPlayer.currentRoleId.includes('Guesser') && !rev) ? 'block' : 'none';
 
                 html += `
                     <div class="word-card ${displayClass} ${revealedClass}" id="card-${i}" onclick="toggleDoubt(${i})">
@@ -1870,6 +2306,23 @@
 
         function updateTurnUI() {
             document.querySelectorAll('.team-box').forEach(b => b.classList.remove('active-turn-box'));
+            if (isSiteOwner) {
+                // المالك يرى صندوق الدور النشط فقط بدون أدوات اللعب
+                const t = currentTurn;
+                const boxId = t === 'redWriter' ? 'redWriterBox' : t === 'redGuesser' ? 'redGuesserBox'
+                    : t === 'blueWriter' ? 'blueWriterBox' : t === 'blueGuesser' ? 'blueGuesserBox' : null;
+                if (boxId) document.getElementById(boxId).classList.add('active-turn-box');
+                const clueArea = document.getElementById('guesserClueArea');
+                if (t === 'redGuesser' || t === 'blueGuesser') {
+                    clueArea.style.display = 'flex';
+                    document.getElementById('displayClueWord').innerText = activeClue.word || 'تلميح';
+                    document.getElementById('displayClueNum').innerText = activeClue.num || '-';
+                    const endBtn = document.querySelector('.end-turn-btn');
+                    if (endBtn) endBtn.style.display = 'none';
+                } else { clueArea.style.display = 'none'; }
+                document.getElementById('writerInputArea').style.display = 'none';
+                return;
+            }
             document.querySelectorAll('.confirm-btn').forEach(b => b.style.display = 'none');
             document.getElementById('writerInputArea').style.display = 'none'; document.getElementById('guesserClueArea').style.display = 'none';
 
@@ -1939,6 +2392,7 @@
         }
 
         function submitClue() {
+            if (isSiteOwner) return;
             const word = document.getElementById('clueWord').value.trim(); const num = document.getElementById('numSelectorBtn').innerText;
             if (word === '' || num === '-') { showAlert('اكتب تلميح واختار رقم أولاً!'); return; }
 
@@ -1950,6 +2404,7 @@
         }
 
         function toggleDoubt(index) {
+            if (isSiteOwner) return;
             if (!currentPlayer.currentRoleId || !currentPlayer.currentRoleId.includes('Guesser')) return;
             const turn = currentTurn; const myTeam = currentPlayer.currentRoleId.includes('red') ? 'red' : 'blue';
             if (turn !== `${myTeam}Guesser`) return;
@@ -1964,6 +2419,7 @@
 
         function confirmGuess(event, index) {
             event.stopPropagation();
+            if (isSiteOwner) return;
             if (!currentPlayer.currentRoleId || !currentPlayer.currentRoleId.includes('Guesser')) return;
             const turn = currentTurn; const myTeam = currentPlayer.currentRoleId.includes('red') ? 'red' : 'blue';
             if (turn !== `${myTeam}Guesser`) return;
@@ -2011,6 +2467,7 @@
         }
 
         function endGuesserTurnManual() {
+            if (isSiteOwner) return;
             if (!currentPlayer.currentRoleId || !currentPlayer.currentRoleId.includes('Guesser')) return;
             const turn = currentTurn; const myTeam = currentPlayer.currentRoleId.includes('red') ? 'red' : 'blue';
             if (turn === `${myTeam}Guesser`) { endGuesserTurn(); }
@@ -2025,18 +2482,20 @@
         }
 
         function surrenderGame() {
+            if (isSiteOwner) { showAlert('أنت في وضع المالك: المشاهدة فقط'); return; }
             if (!currentPlayer.currentRoleId) { showAlert('أنت لا تملك دوراً حالياً'); return; }
             const myTeam = currentPlayer.currentRoleId.includes('red') ? 'red' : 'blue';
             const enemyTeam = myTeam === 'red' ? 'blue' : 'red';
             const enemyTeamName = enemyTeam === 'red' ? 'الأحمر' : 'الأزرق';
             const myTeamName = myTeam === 'red' ? 'الأحمر' : 'الأزرق';
 
-            STATE_REF.update({ winner: enemyTeam, blackWordWinner: false }); WINNER_REF.set(enemyTeam);
+            STATE_REF.update({ winner: enemyTeam, blackWordWinner: false, bySurrender: true }); WINNER_REF.set(enemyTeam);
             document.getElementById('surrenderSettingsBtn').style.display = 'none'; closeSettings();
             showAlert(`انسحب اللاعب من الفريق ${myTeamName}، الفريق ${enemyTeamName} يفوز! 🏆`);
         }
 
-        function showVictory(winningTeam, isBlackWord = false) {
+        function showVictory(winningTeam, isBlackWord = false, bySurrender = false) {
+            recordWin(winningTeam, bySurrender ? 'surrender' : (isBlackWord ? 'black' : 'normal'));
             const overlay = document.getElementById('victoryOverlay'); const text = document.getElementById('victoryText');
             const teamName = winningTeam === 'red' ? 'الأحمر' : 'الأزرق';
             const colorCode = winningTeam === 'red' ? '#e53935' : '#039be5';
