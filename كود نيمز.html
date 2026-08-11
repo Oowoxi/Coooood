@@ -1361,7 +1361,7 @@
         function closeRoundLog() { document.getElementById('roundLogModal').style.display = 'none'; }
 
         let pendingTimers = [];
-        let isLeavingRoom = false;
+        let isLeavingRoom = false;            // خروج مقصود من الغرفة: يمنع استعادة المقعد
 
         const CANCEL_MSG_DISCONNECT = 'انقطع اتصال أحد اللاعبين، تم إلغاء اللعبة والعودة إلى الغرفة.';
         const CANCEL_MSG_EXIT = 'خرج أحد اللاعبين من اللعبة، تم إلغاء اللعبة والعودة إلى الغرفة.';
@@ -1815,6 +1815,8 @@
             // المالك مشاهد مخفي: لا يُحسب ضمن العدد ولا تمنعه الغرفة الممتلئة
             if (!isSiteOwner && pCount >= room.maxPlayers) { showAlert('الغرفة ممتلئة'); return; }
 
+            isLeavingRoom = false;   // دخول جديد: أعِد تفعيل حماية استعادة المقعد
+            kickedOut = false;
             detachRoomListeners();
             clearLocalGameState();
             // ابدأ من حالة نظيفة: أخفِ شاشة اللعب حتى يقرر مستمع الحالة الشاشة الصحيحة،
@@ -1941,6 +1943,8 @@
         }
 
         function exitRoom() {
+            // خروج مقصود: لا يجوز لآلية استعادة المقعد أن تعيد إنشائي بعد الحذف
+            isLeavingRoom = true;
             // خروج المالك المشاهد لا يؤثر على الجولة الجارية إطلاقاً
             if (isSiteOwner) {
                 if (mySpectatorId && SPECTATORS_REF) {
@@ -1968,8 +1972,11 @@
             if (myPlayerId && HEARTBEAT_REF) HEARTBEAT_REF.child(myPlayerId).remove().catch(() => {});
             if (myPlayerId && PLAYERS_REF) {
                 const meRef = PLAYERS_REF.child(myPlayerId);
-                meRef.onDisconnect().cancel();
-                meRef.remove();
+                // احذف المقعد أولاً وأبقِ onDisconnect مسلحاً كشبكة أمان:
+                // لو انقطع الاتصال قبل نجاح الحذف يتكفل الخادم بإزالة المقعد.
+                meRef.remove()
+                    .then(() => { try { meRef.onDisconnect().cancel(); } catch (e) {} })
+                    .catch(() => {});
                 if(currentPlayer.currentRoleId) {
                     ROLES_REF.child(currentPlayer.currentRoleId).remove();
                 }
@@ -2071,7 +2078,7 @@
                 if (myPlayerId && (!gameState.players || !gameState.players[myPlayerId])) {
                     // اختفى مقعدي: قد يكون طرداً حقيقياً، وقد يكون onDisconnect انطلق بالخطأ
                     // أثناء تبديل التبويب/التطبيق. ما دمت متصلاً فعلياً نستعيد المقعد بدل الطرد.
-                    if (!isLeavingPage && !seatRecoveryTried && CURRENT_ROOM_ID && !isSiteOwner) {
+                    if (!isLeavingPage && !isLeavingRoom && !seatRecoveryTried && CURRENT_ROOM_ID && !isSiteOwner) {
                         seatRecoveryTried = true;
                         ensureMySeatAlive();
                         // امنح الاستعادة فرصة قبل الحكم بالطرد
@@ -2458,7 +2465,7 @@
 
         // إعادة تسجيل مقعدي فوراً إذا حذفه onDisconnect بالخطأ وأنا ما زلت موجوداً
         function ensureMySeatAlive() {
-            if (isLeavingPage) return;   // الصفحة تُغلق فعلاً: لا تُعِد إنشاء المقعد
+            if (isLeavingPage || isLeavingRoom) return;   // خروج مقصود: لا تُعِد إنشاء المقعد
             if (isSiteOwner || !myPlayerId || !PLAYERS_REF || !CURRENT_ROOM_ID) return;
             PLAYERS_REF.child(myPlayerId).once('value', (snap) => {
                 if (snap.exists()) return;
