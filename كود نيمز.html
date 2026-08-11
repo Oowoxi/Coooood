@@ -673,6 +673,8 @@
 
         let CURRENT_ROOM_ID = null;
         let GAME_REF, PLAYERS_REF, ROLES_REF, BOARD_REF, STATE_REF, CLUE_REF, WINNER_REF, COUNTDOWN_REF, CHATS_REF;
+        // الشات العام يُحفظ خارج عقدة اللعبة حتى لا يُمسح عند انتهاء أو إلغاء اللعبة
+        let GLOBAL_CHAT_REF = null;
 
         let currentPlayer = { name: "", avatar: "", currentRoleId: null, isOwner: false };
         let gameState = { players: {}, roles: {} };
@@ -855,7 +857,12 @@
             }
         });
 
-        function clearLocalGameState(keepAlert) {
+        // opts.keepAlert  : لا تمسح نص التنبيه
+        // opts.stayInRoom : تنظيف بين جولتين داخل نفس الغرفة (لا نمسح نسخة اللاعبين ولا مستمعي الشات)
+        function clearLocalGameState(opts) {
+            opts = (typeof opts === 'object' && opts !== null) ? opts : { keepAlert: !!opts };
+            const stayInRoom = !!opts.stayInRoom;
+
             document.getElementById('chatMessagesArea').innerHTML = '';
             document.getElementById('displayClueWord').innerText = 'تلميح';
             document.getElementById('displayClueNum').innerText = '-';
@@ -863,7 +870,7 @@
             // لا نمسح نص التنبيه إذا كان ظاهراً للاعب (رسالة إلغاء اللعبة مثلاً)
             const alertOverlay = document.getElementById('customAlert');
             const alertVisible = alertOverlay.style.display === 'flex';
-            if (!keepAlert && !alertVisible) {
+            if (!opts.keepAlert && !alertVisible) {
                 document.getElementById('customAlertText').innerText = '';
             }
 
@@ -879,8 +886,13 @@
             initialClueLoad = true;
             gameStartedFlag = false;
             activeChatType = null;
-            chatListenersAttached = false;
-            gameState = { players: {}, roles: {} };
+
+            if (!stayInRoom) {
+                // تُمسح فقط عند مغادرة الغرفة فعلياً.
+                // مسحها ونحن داخل الغرفة كان يجعل checkPlayersIntegrity يظن أن الغرفة فارغة فيحذف اللعبة ويطرد الجميع.
+                chatListenersAttached = false;
+                gameState = { players: {}, roles: {} };
+            }
             document.getElementById('countdownText').style.display = 'none';
         }
 
@@ -907,6 +919,7 @@
             if (COUNTDOWN_REF) COUNTDOWN_REF.off();
             if (CHATS_REF) CHATS_REF.off();
             if (CANCEL_REF) CANCEL_REF.off();
+            if (GLOBAL_CHAT_REF) GLOBAL_CHAT_REF.off();
             gameListenersAttached = false;
             chatListenersAttached = false;
         }
@@ -1012,6 +1025,8 @@
             COUNTDOWN_REF = GAME_REF.child('countdown');
             CHATS_REF = GAME_REF.child('chats');
             CANCEL_REF = GAME_REF.child('cancel');
+            // الشات العام على مستوى الغرفة (خارج /game) فلا يتأثر بحذف بيانات اللعبة
+            GLOBAL_CHAT_REF = db.ref(`/rooms/${rId}/globalChat`);
 
             roomSessionId++;
             clearPendingTimers();
@@ -1277,9 +1292,14 @@
                 document.getElementById('rolesScreen').style.display = 'block';
                 document.body.classList.remove('game-active');
 
-                clearLocalGameState();
+                // تنظيف "داخل الغرفة": نحتفظ بقائمة اللاعبين حتى تبدأ جولة جديدة بشكل طبيعي
+                clearLocalGameState({ stayInRoom: true });
+                gameState.roles = {};
                 currentPlayer.currentRoleId = null;
+                document.getElementById('leaveBtn').style.display = 'none';
                 if (myPlayerId && PLAYERS_REF) PLAYERS_REF.child(myPlayerId).update({ currentRoleId: null });
+                buildRolesUI();
+                updateChatVisibility();
             } else { exitRoomFromKick(); }
         }
 
@@ -1310,7 +1330,16 @@
             }).catch(() => {});
 
             // امنح اللاعبين وقتاً لاستلام الرسالة ثم احذف بيانات اللعبة (مع إبقاء أي لاعب دخل حديثاً)
-            setTimeout(() => { purgeGameData(gameRefSnapshot, true); }, 2000);
+            const chatRefSnapshot = GLOBAL_CHAT_REF;
+            setTimeout(() => {
+                purgeGameData(gameRefSnapshot, true);
+                // إذا غادر الجميع الغرفة، نظّف الشات العام أيضاً
+                gameRefSnapshot.child('players').once('value', (s) => {
+                    if (Object.keys(s.val() || {}).length === 0 && chatRefSnapshot) {
+                        chatRefSnapshot.remove().catch(() => {});
+                    }
+                });
+            }, 2000);
         }
 
         function cancelGame(reason, alreadyBroadcast) {
@@ -1338,9 +1367,21 @@
             if (!CURRENT_ROOM_ID || !STATE_REF) return;
             const currentPlayersCount = Object.keys(gameState.players || {}).length;
 
-            if (currentPlayersCount === 0 && CURRENT_ROOM_ID) {
+            if (currentPlayersCount === 0) {
+                // لا نحذف اعتماداً على النسخة المحلية فقط، نتأكد من الخادم أولاً
+                // (كانت النسخة المحلية تُفرَّغ بعد انتهاء الجولة فيُحذف كل شيء ويُطرد الجميع)
+                if (myPlayerId) return; // ما زلت داخل الغرفة، الغرفة ليست فارغة
                 if (GAME_REF) {
-                    GAME_REF.remove();
+                    const gRef = GAME_REF;
+                    const chatRef = GLOBAL_CHAT_REF;
+                    gRef.child('players').once('value', (s) => {
+                        const realCount = Object.keys(s.val() || {}).length;
+                        if (realCount === 0) {
+                            gRef.remove().catch(() => {});
+                            // الغرفة أصبحت فارغة تماماً: نبدأ شاتاً عاماً جديداً
+                            if (chatRef) chatRef.remove().catch(() => {});
+                        }
+                    });
                 }
                 return;
             }
@@ -1431,7 +1472,7 @@
             document.getElementById('mainChatControls').style.display = 'flex';
             updateChatVisibility();
 
-            CHATS_REF.child('global').on('child_added', (snap) => { handleIncomingMessage(snap.val(), 'global'); });
+            GLOBAL_CHAT_REF.on('child_added', (snap) => { handleIncomingMessage(snap.val(), 'global'); });
 
             let currentPrivatePath = getMyPrivateChatPath();
             if (currentPrivatePath) {
@@ -1481,10 +1522,17 @@
             const chatContainer = document.getElementById('chatMessagesArea');
             chatContainer.innerHTML = '';
             
-            const path = (type === 'global') ? 'global' : getMyPrivateChatPath();
-            if (!path) return;
+            let targetRef;
+            if (type === 'global') {
+                targetRef = GLOBAL_CHAT_REF;
+            } else {
+                const path = getMyPrivateChatPath();
+                if (!path) return;
+                targetRef = CHATS_REF.child(path);
+            }
+            if (!targetRef) return;
 
-            CHATS_REF.child(path).once('value', (snap) => {
+            targetRef.once('value', (snap) => {
                 snap.forEach((child) => { renderChatMessage(child.val()); });
                 chatContainer.scrollTop = chatContainer.scrollHeight;
             });
@@ -1512,10 +1560,17 @@
             const text = input.value.trim();
             if (!text || !activeChatType) return;
 
-            const path = (activeChatType === 'global') ? 'global' : getMyPrivateChatPath();
-            if (!path) return;
+            let targetRef;
+            if (activeChatType === 'global') {
+                targetRef = GLOBAL_CHAT_REF;
+            } else {
+                const path = getMyPrivateChatPath();
+                if (!path) return;
+                targetRef = CHATS_REF.child(path);
+            }
+            if (!targetRef) return;
 
-            CHATS_REF.child(path).push({
+            targetRef.push({
                 id: myPlayerId,
                 name: currentPlayer.name,
                 avatar: currentPlayer.avatar,
