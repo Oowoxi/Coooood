@@ -703,6 +703,9 @@
         let cancelMessageShown = false;
         let roomJoinedAt = 0;
         let roomSessionId = 0;
+        // فترة تهدئة بعد إلغاء اللعبة حتى لا تتكرر الرسالة أو يُعاد الإلغاء أثناء التنظيف
+        let cancelCooldownUntil = 0;
+        let lastHandledCancelTs = 0;
         let pendingTimers = [];
         let isLeavingRoom = false;
 
@@ -1103,6 +1106,9 @@
                 broadcastCancel(CANCEL_MSG_EXIT);
             }
 
+            const gameRefSnapshot = GAME_REF;
+            const chatRefSnapshot = GLOBAL_CHAT_REF;
+
             if (myPlayerId && PLAYERS_REF) {
                 const meRef = PLAYERS_REF.child(myPlayerId);
                 meRef.onDisconnect().cancel();
@@ -1111,6 +1117,17 @@
                     ROLES_REF.child(currentPlayer.currentRoleId).remove();
                 }
             }
+
+            // إذا كنت آخر من يغادر، نظّف الغرفة والشات العام بالكامل
+            if (gameRefSnapshot) {
+                gameRefSnapshot.child('players').once('value', (s) => {
+                    if (Object.keys(s.val() || {}).length === 0) {
+                        gameRefSnapshot.remove().catch(() => {});
+                        if (chatRefSnapshot) chatRefSnapshot.remove().catch(() => {});
+                    }
+                });
+            }
+
             exitRoomFromKick(wasInGame ? 'خرجت من اللعبة، تم إلغاؤها.' : null);
         }
 
@@ -1128,6 +1145,9 @@
                     if (currentPlayer.isOwner && CANCEL_REF) CANCEL_REF.remove().catch(() => {});
                     return;
                 }
+                // تجاهل نفس الإعلان إذا سبق التعامل معه (حتى لا تتكرر الرسالة)
+                if (data.ts && data.ts === lastHandledCancelTs) return;
+                lastHandledCancelTs = data.ts || Date.now();
                 cancelGame(data.reason || CANCEL_MSG_DISCONNECT, true);
             });
 
@@ -1201,12 +1221,15 @@
                 } else if (!data.winner) { victoryShown = false; }
 
                 if (data.gameStarted === true) {
+                    // اللعبة بدأت على الخادم: زامن الحالة المحلية حتى يدخل كل اللاعبين
+                    gameStartedFlag = true;
                     document.getElementById('rolesScreen').style.display = 'none';
                     document.getElementById('gameScreen').style.display = 'flex';
                     document.body.classList.add('game-active');
                     updateTurnUI(); updateWriterMode();
                     document.getElementById('surrenderSettingsBtn').style.display = 'inline-block';
                 } else {
+                    gameStartedFlag = false;
                     if (document.getElementById('gameScreen').style.display === 'flex') {
                         document.getElementById('gameScreen').style.display = 'none';
                         document.getElementById('rolesScreen').style.display = 'block';
@@ -1329,38 +1352,72 @@
                 return { active: true, reason: reason, ts: Date.now() };
             }).catch(() => {});
 
-            // امنح اللاعبين وقتاً لاستلام الرسالة ثم احذف بيانات اللعبة (مع إبقاء أي لاعب دخل حديثاً)
+            // ننظّف بيانات اللعبة فوراً (الأدوار واللوحة والحالة) حتى لا تعود أدوار قديمة
+            // للظهور، ونُبقي عقدة "cancel" وحدها فترة قصيرة ليستلم الجميع سبب الإلغاء.
             const chatRefSnapshot = GLOBAL_CHAT_REF;
+            const modeSnapshot = currentMode;
+            gameRefSnapshot.update({
+                board: null,
+                roles: null,
+                chats: null,
+                clue: { word: '', num: '-' },
+                winner: null,
+                countdown: { value: 3, isRunning: false },
+                state: { mode: modeSnapshot, gameStarted: false, winner: '', blackWordWinner: false, currentTurn: '', redWordsLeft: 9, blueWordsLeft: 8 }
+            }).catch(() => {});
+
             setTimeout(() => {
-                purgeGameData(gameRefSnapshot, true);
-                // إذا غادر الجميع الغرفة، نظّف الشات العام أيضاً
+                gameRefSnapshot.child('cancel').remove().catch(() => {});
                 gameRefSnapshot.child('players').once('value', (s) => {
-                    if (Object.keys(s.val() || {}).length === 0 && chatRefSnapshot) {
-                        chatRefSnapshot.remove().catch(() => {});
+                    // الغرفة فارغة تماماً: احذف كل شيء وابدأ شاتاً عاماً جديداً
+                    if (Object.keys(s.val() || {}).length === 0) {
+                        gameRefSnapshot.remove().catch(() => {});
+                        if (chatRefSnapshot) chatRefSnapshot.remove().catch(() => {});
                     }
                 });
-            }, 2000);
+            }, 2500);
         }
 
+        // إلغاء اللعبة مع إبقاء اللاعبين داخل الغرفة (يرجعون لشاشة اختيار الأدوار)
         function cancelGame(reason, alreadyBroadcast) {
             if (gameCancelled) return;
             gameCancelled = true;
             clearInterval(countdownInterval);
+            countdownInterval = null;
             clearPendingTimers();
+            gameStartedFlag = false;
 
             if (!alreadyBroadcast) broadcastCancel(reason);
 
             cancelMessageShown = true;
             showAlert(reason);
 
-            // أزل نفسي من الغرفة حتى لا أبقى لاعباً شبحاً فيها
-            if (myPlayerId && PLAYERS_REF) {
-                const meRef = PLAYERS_REF.child(myPlayerId);
-                meRef.onDisconnect().cancel();
-                meRef.remove().catch(() => {});
-            }
+            // إن لم نعد داخل غرفة أصلاً فلا شيء نرجع إليه
+            if (!CURRENT_ROOM_ID) { exitRoomFromKick(reason); return; }
 
-            setTimeout(() => { exitRoomFromKick(reason); }, 1500);
+            // ملاحظة: تنظيف قاعدة البيانات يتم في broadcastCancel من جهاز واحد فقط،
+            // حتى لا تتسابق الأجهزة على المسح فيختفي إعلان الإلغاء قبل أن يصل للجميع.
+
+            // ارجع لشاشة الأدوار داخل نفس الغرفة (بدون الخروج إلى قائمة الغرف)
+            document.getElementById('gameScreen').style.display = 'none';
+            document.getElementById('rolesScreen').style.display = 'block';
+            document.body.classList.remove('game-active');
+
+            clearLocalGameState({ stayInRoom: true, keepAlert: true });
+            gameState.roles = {};
+            currentPlayer.currentRoleId = null;
+            document.getElementById('leaveBtn').style.display = 'none';
+            if (myPlayerId && PLAYERS_REF) PLAYERS_REF.child(myPlayerId).update({ currentRoleId: null }).catch(() => {});
+            buildRolesUI();
+            updateLobbyUI();
+            updateChatVisibility();
+
+            // فترة تهدئة: نمنع إعادة إطلاق الإلغاء أثناء تنظيف البيانات
+            cancelCooldownUntil = Date.now() + 4000;
+            setTimeout(() => {
+                gameCancelled = false;
+                cancelMessageShown = false;
+            }, 3000);
         }
 
         function checkPlayersIntegrity() {
@@ -1388,6 +1445,8 @@
 
             STATE_REF.child('gameStarted').once('value', (snap) => {
                 if (!snap.val() || gameCancelled || !CURRENT_ROOM_ID) return;
+                // أثناء تنظيف اللعبة الملغاة لا نعيد إطلاق الإلغاء مرة أخرى
+                if (Date.now() < cancelCooldownUntil) return;
                 const required = gameModes[currentMode].total;
 
                 if (currentPlayersCount < required) { cancelGame(CANCEL_MSG_DISCONNECT); return; }
