@@ -37,9 +37,9 @@
             100% { background-position: 0% 50%; }
         }
         @keyframes cardRevealEpic {
-            0% { transform: scale(1); filter: brightness(1); }
-            50% { transform: scale(1.05) translateY(-5px); filter: brightness(1.2); box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
-            100% { transform: scale(1) translateY(0); filter: grayscale(10%) brightness(0.9); box-shadow: inset 0 0 15px rgba(0,0,0,0.7); }
+            0% { transform: scale(calc(var(--card-scale) * 0.92)); filter: brightness(1); }
+            55% { transform: scale(calc(var(--card-scale) * 1.06)) translateY(-5px); filter: brightness(1.2); box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
+            100% { transform: scale(var(--card-scale)) translateY(0); filter: grayscale(10%) brightness(0.9); box-shadow: inset 0 0 15px rgba(0,0,0,0.7); }
         }
         @keyframes fadeInOverlay { 0% { opacity: 0; } 100% { opacity: 0.35; } }
         @keyframes slideBanner {
@@ -198,7 +198,7 @@
         }
         .avatar-upload-container::before { content: '+ اختر افتار'; color: #D4AF37; font-size: 16px; font-weight: 900; position: absolute; }
         .avatar-upload-container.has-image::before { display: none; }
-        .avatar-upload-container img { width: 100%; height: 100%; object-fit: cover; display: none; z-index: 2; }
+        .avatar-upload-container img { width: 100%; height: 100%; object-fit: cover; display: none; z-index: 2; image-rendering: auto; }
 
         input[type="text"] {
             padding: 16px; width: 80%; max-width: 320px; background: rgba(20, 20, 20, 0.8);
@@ -414,7 +414,14 @@
         .word-black { background: linear-gradient(145deg, #424242, var(--black-base)); border-color: #000; }
         .word-card.hidden-color { background: linear-gradient(145deg, #f5e6ce, #e4d5b7); border-color: #c2b08a; }
 
-        .word-text-box { background: transparent; padding: 0; z-index: 3; transition: 0.3s; position: relative; }
+        .word-text-box { background: transparent; padding: 0 4px; z-index: 3; transition: 0.3s; position: relative; line-height: 1.15; }
+        /* عند ظهور زر التأكيد: ننزل النص رأسياً ونزيحه عن ركن الزر أفقياً
+           حتى تبقى الكلمة كاملة الظهور مهما كان حجم الشاشة */
+        .word-card { box-sizing: border-box; overflow: hidden; }
+        .word-card.has-confirm { padding-top: 16px; }
+        .word-card.has-confirm .word-text-box { padding-right: 18px; }
+        /* الكلمات الطويلة تلتف بدل أن تختفي تحت الزر */
+        .word-text-box { overflow-wrap: anywhere; word-break: break-word; text-align: center; max-width: 100%; }
         .word-neutral .word-text-box, .word-card.hidden-color .word-text-box { color: #111; text-shadow: 1px 1px 2px rgba(255,255,255,0.7); }
         .word-red .word-text-box, .word-blue .word-text-box, .word-black .word-text-box { color: white; text-shadow: 1px 1px 4px rgba(0,0,0,0.9); }
 
@@ -423,7 +430,7 @@
             object-fit: cover; z-index: 2; pointer-events: none; mix-blend-mode: luminosity; border-radius: inherit;
         }
 
-        .word-card.revealed { animation: cardRevealEpic 0.6s ease forwards; border-bottom-width: 2px; cursor: default; }
+        .word-card.revealed { animation: cardRevealEpic 0.55s cubic-bezier(0.34, 1.4, 0.64, 1) forwards; border-bottom-width: 2px; cursor: default; }
         .word-card.revealed .word-text-box { transform: scale(1.1); }
         .word-card.revealed .guesser-avatar-overlay { animation: fadeInOverlay 0.8s ease forwards; }
 
@@ -431,11 +438,12 @@
         .cards-grid.writer-mode .word-card:hover { transform: scale(var(--card-scale)); z-index: auto; }
 
         .confirm-btn {
-            position: absolute; top: 5px; right: 5px; width: 30px; height: 30px;
+            position: absolute; top: 2px; right: 2px; width: 22px; height: 22px;
             background: #fbc02d url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="black"><path d="M9 11.24V7.5a2.5 2.5 0 0 1 5 0v3.74c1.21-.81 2-2.18 2-3.74a4.5 4.5 0 0 0-9 0c0 1.56.79 2.93 2 3.74zm9.84 4.63l-4.54-2.26A1.99 1.99 0 0 0 13.4 13h-2.3v-5.5c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v10.74l-3.2-1.07c-.45-.15-.95.06-1.18.47l-.99 1.7 6.46 6.47c.5.5 1.18.79 1.89.79H16.5c1.1 0 2-.9 2-2v-4.5c0-.98-.67-1.8-1.58-1.95l1.92-1.93z"/></svg>') no-repeat center center;
-            background-size: 18px; border: 2px solid #fff; border-radius: 50%; cursor: pointer; display: none; z-index: 10;
+            background-size: 13px; border: 2px solid #fff; border-radius: 50%; cursor: pointer; display: none; z-index: 10; transition: transform 0.12s ease;
         }
         .confirm-btn:hover { background-color: #fff; transform: scale(1.1); }
+        .confirm-btn:active { transform: scale(0.88); }
 
         .doubt-names {
             position: absolute; bottom: 4px; left: 0; width: 100%; font-size: 11px;
@@ -1053,7 +1061,7 @@
             logRoundEvent('info', `انتهى وقت ${who} ${teamAr} — انتقل الدور`, turnAtFire.includes('red') ? 'red' : 'blue');
 
             document.querySelectorAll('.doubt-names').forEach(el => el.innerText = '');
-            document.querySelectorAll('.confirm-btn').forEach(b => b.style.display = 'none');
+            setAllConfirms(false);
             currentTurn = nextTurn;
             STATE_REF.update({ currentTurn: nextTurn }).then(() => { updateTurnUI(); }).catch(() => {});
         }
@@ -2416,12 +2424,18 @@
                     const img = new Image();
                     img.onload = function() {
                         const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d');
-                        const MAX_WIDTH = 150; const MAX_HEIGHT = 150;
+                        // دقة أعلى حتى لا تظهر الصورة مغبشة على شاشات الجوال عالية الكثافة
+                        // (دائرة الأفتار 130px وكثافة الجوال تصل 3x أي ~390px فعلية)
+                        const MAX_WIDTH = 400; const MAX_HEIGHT = 400;
                         let width = img.width; let height = img.height;
                         if (width > height) { if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; } } 
                         else { if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; } }
-                        canvas.width = width; canvas.height = height; ctx.drawImage(img, 0, 0, width, height);
-                        const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+                        canvas.width = Math.round(width); canvas.height = Math.round(height);
+                        // تنعيم عالي الجودة عند التصغير
+                        ctx.imageSmoothingEnabled = true;
+                        if ('imageSmoothingQuality' in ctx) ctx.imageSmoothingQuality = 'high';
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
                         const previewImg = document.getElementById('avatarPreviewImg');
                         previewImg.src = dataUrl; previewImg.style.display = 'block';
                         document.getElementById('avatarContainer').classList.add('has-image');
@@ -2581,8 +2595,9 @@
                 const revealedClass = rev ? 'revealed' : '';
                 const btnDisplay = (!isSiteOwner && currentPlayer.currentRoleId && currentPlayer.currentRoleId.includes('Guesser') && !rev) ? 'block' : 'none';
 
+                const confirmClass = btnDisplay === 'block' ? ' has-confirm' : '';
                 html += `
-                    <div class="word-card ${displayClass} ${revealedClass}" id="card-${i}" onclick="toggleDoubt(${i})">
+                    <div class="word-card ${displayClass} ${revealedClass}${confirmClass}" id="card-${i}" onclick="toggleDoubt(${i})">
                         ${rev && revBy ? `<img src="${safeImgSrc(revBy)}" class="guesser-avatar-overlay">` : ''}
                         <div class="confirm-btn" onclick="confirmGuess(event, ${i})" style="display:${btnDisplay}"></div>
                         <span class="word-text-box" id="word-text-${i}">${escapeHtml(word)}</span>
@@ -2628,7 +2643,7 @@
                 document.getElementById('writerInputArea').style.display = 'none';
                 return;
             }
-            document.querySelectorAll('.confirm-btn').forEach(b => b.style.display = 'none');
+            setAllConfirms(false);
             document.getElementById('writerInputArea').style.display = 'none'; document.getElementById('guesserClueArea').style.display = 'none';
 
             const turn = currentTurn;
@@ -2655,7 +2670,7 @@
                 document.getElementById('displayClueWord').innerText = activeClue.word || 'تلميح';
                 document.getElementById('displayClueNum').innerText = activeClue.num || '-';
                 if (currentPlayer.currentRoleId && currentPlayer.currentRoleId.includes('redGuesser')) {
-                    document.querySelectorAll('.word-card:not(.revealed) .confirm-btn').forEach(b => b.style.display = 'block');
+                    setAllConfirms(true, true);
                     document.querySelector('.end-turn-btn').style.display = 'inline-block';
                 } else { document.querySelector('.end-turn-btn').style.display = 'none'; }
             } else if (turn === 'blueWriter') {
@@ -2680,7 +2695,7 @@
                 document.getElementById('displayClueWord').innerText = activeClue.word || 'تلميح';
                 document.getElementById('displayClueNum').innerText = activeClue.num || '-';
                 if (currentPlayer.currentRoleId && currentPlayer.currentRoleId.includes('blueGuesser')) {
-                    document.querySelectorAll('.word-card:not(.revealed) .confirm-btn').forEach(b => b.style.display = 'block');
+                    setAllConfirms(true, true);
                     document.querySelector('.end-turn-btn').style.display = 'inline-block';
                 } else { document.querySelector('.end-turn-btn').style.display = 'none'; }
             }
@@ -2707,6 +2722,21 @@
             if (turn === 'redWriter') nextTurn = 'redGuesser'; else if (turn === 'blueWriter') nextTurn = 'blueGuesser';
             if (nextTurn) { currentTurn = nextTurn; STATE_REF.update({ currentTurn: nextTurn }).then(() => { updateTurnUI(); }); }
             document.getElementById('clueWord').value = ''; document.getElementById('numSelectorBtn').innerText = '-';
+        }
+
+        // إظهار/إخفاء زر التأكيد مع تباعد النص حتى لا يغطيه الزر
+        function setConfirmVisible(btn, show) {
+            if (!btn) return;
+            btn.style.display = show ? 'block' : 'none';
+            const card = btn.closest ? btn.closest('.word-card') : null;
+            if (card && card.classList) {
+                if (show) card.classList.add('has-confirm'); else card.classList.remove('has-confirm');
+            }
+        }
+        function setAllConfirms(show, onlyUnrevealed) {
+            const sel = onlyUnrevealed ? '.word-card:not(.revealed) .confirm-btn' : '.confirm-btn';
+            document.querySelectorAll(sel).forEach(b => setConfirmVisible(b, show));
+            if (!show) document.querySelectorAll('.word-card').forEach(c => c.classList.remove('has-confirm'));
         }
 
         function toggleDoubt(index) {
@@ -2771,7 +2801,7 @@
                     STATE_REF.update({ redWordsLeft: rL, blueWordsLeft: bL, winner: winningTeam, blackWordWinner: true });
                     WINNER_REF.set(winningTeam);
                 }
-                document.getElementById(`doubt-${index}`).innerText = ''; card.querySelector('.confirm-btn').style.display = 'none';
+                document.getElementById(`doubt-${index}`).innerText = ''; setConfirmVisible(card.querySelector('.confirm-btn'), false);
             });
         }
 
@@ -2790,7 +2820,7 @@
 
         function endGuesserTurn() {
             document.querySelectorAll('.doubt-names').forEach(el => el.innerText = '');
-            document.querySelectorAll('.confirm-btn').forEach(b => b.style.display = 'none');
+            setAllConfirms(false);
             const turn = currentTurn; let nextTurn = '';
             if (turn === 'redGuesser') nextTurn = 'blueWriter'; else if (turn === 'blueGuesser') nextTurn = 'redWriter';
             if (nextTurn) { currentTurn = nextTurn; STATE_REF.update({ currentTurn: nextTurn }).then(() => { updateTurnUI(); }); }
