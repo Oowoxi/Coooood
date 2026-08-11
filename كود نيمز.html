@@ -1503,6 +1503,10 @@
 
             detachRoomListeners();
             clearLocalGameState();
+            // ابدأ من حالة نظيفة: أخفِ شاشة اللعب حتى يقرر مستمع الحالة الشاشة الصحيحة،
+            // فلا تبقى بقايا شاشة لعبة سابقة ظاهرة فوق شاشة الأدوار.
+            document.getElementById('gameScreen').style.display = 'none';
+            document.body.classList.remove('game-active');
             CURRENT_ROOM_ID = rId;
             currentMode = room.mode || '2v2';
 
@@ -1537,7 +1541,10 @@
                     specRef.onDisconnect().remove();
                     attachGameListeners();
                     document.getElementById('roomsScreen').style.display = 'none';
-                    document.getElementById('rolesScreen').style.display = 'block';
+                    // نفس القاعدة: إن كانت اللعبة شغالة فقد نقلَنا مستمع الحالة إلى شاشة اللعب
+                    if (document.getElementById('gameScreen').style.display !== 'flex') {
+                        document.getElementById('rolesScreen').style.display = 'block';
+                    }
                     updateLobbyUI(); buildRolesUI(); initializeChats(); applyOwnerViewMode();
                 }).catch(err => { showAlert('خطأ في الاتصال: ' + err.message); });
                 return;
@@ -1570,7 +1577,11 @@
                     }
                     attachGameListeners();
                     document.getElementById('roomsScreen').style.display = 'none';
-                    document.getElementById('rolesScreen').style.display = 'block';
+                    // لا تُظهر شاشة الأدوار إذا كانت اللعبة شغالة وقد أدخلنا مستمع الحالة إلى شاشة اللعب،
+                    // وإلا ظهرت الشاشتان فوق بعض (حالة اللاعب العائد بعد انقطاع أثناء الجولة).
+                    if (document.getElementById('gameScreen').style.display !== 'flex') {
+                        document.getElementById('rolesScreen').style.display = 'block';
+                    }
                     updateLobbyUI(); buildRolesUI(); initializeChats();
                 });
             }).catch(err => { showAlert('خطأ في الاتصال: ' + err.message); });
