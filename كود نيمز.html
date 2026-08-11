@@ -2096,6 +2096,7 @@
                 }
                 seatRecoveryTried = false;
 
+                ensureRoomHasOwner();   // الغرفة يجب أن يكون لها صاحب دائماً
                 if (myPlayerId && gameState.players[myPlayerId]) {
                     currentPlayer.isOwner = gameState.players[myPlayerId].isOwner || false;
                     currentPlayer.name = gameState.players[myPlayerId].name || currentPlayer.name;
@@ -2461,6 +2462,21 @@
             const hb = heartbeats[pid] || 0;
             if (!hb) return false;            // لا توجد نبضة مسجّلة بعد: لا نحكم عليه
             return (Date.now() - hb) > HEARTBEAT_DEAD_MS;
+        }
+
+        // إذا خرج المدير أو انقطع، انقل التاج لأقدم لاعب متبقٍ.
+        // بدون هذا تبقى الغرفة بلا صاحب: لا زر طرد، ولا من يلغي الجولة عند الانقطاع.
+        function ensureRoomHasOwner() {
+            if (isSiteOwner || !PLAYERS_REF || !CURRENT_ROOM_ID || !myPlayerId) return;
+            const players = gameState.players || {};
+            const keys = Object.keys(players);
+            if (!keys.length) return;
+            for (const k of keys) { if (players[k].isOwner === true) return; }   // يوجد مدير
+            // المرشح ثابت عند الجميع (أصغر مفتاح) فلا يتسابق أحد على التاج
+            const heir = keys.slice().sort()[0];
+            if (heir !== myPlayerId) return;   // كل عميل يرشّح نفسه فقط
+            PLAYERS_REF.child(heir).update({ isOwner: true }).catch(() => {});
+            currentPlayer.isOwner = true;
         }
 
         // إعادة تسجيل مقعدي فوراً إذا حذفه onDisconnect بالخطأ وأنا ما زلت موجوداً
