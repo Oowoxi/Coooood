@@ -124,6 +124,14 @@
         .settings-actions .close-settings { background: #444; color: white; }
         .settings-actions .surrender-in-settings { background: #d32f2f; color: white; }
         .settings-actions .save-scale-btn { background: #2e7d32; color: white; }
+        .settings-actions .reset-settings-btn { background: #455a64; color: #fff; }
+        .sound-setting-btn {
+            width: 100%; padding: 11px; border-radius: 12px; border: 2px solid rgba(212,175,55,0.5);
+            background: rgba(0,0,0,0.45); color: #ffd700; font-weight: 900; font-size: 15px;
+            font-family: 'Cairo', sans-serif; cursor: pointer; transition: all 0.2s ease; margin-top: 6px;
+        }
+        .sound-setting-btn:hover { background: rgba(212,175,55,0.18); }
+        .sound-setting-btn.sound-off { color: #bbb; border-color: rgba(255,255,255,0.25); }
 
         #mainChatControls {
             display: none; justify-content: center; gap: 10px;
@@ -348,6 +356,38 @@
         .clue-popup-word { font-size: 32px; font-weight: 900; color: #111; font-family: 'Cairo', sans-serif;}
         .clue-popup-num { font-size: 28px; font-weight: 900; color: #111; background: #fff; border: 2px solid #ccc; border-radius: 8px; padding: 5px 15px; box-shadow: inset 0 2px 5px rgba(0,0,0,0.1);}
         
+        /* ===== تأثيرات حركة فقط (لا تغيّر شكل الصفحات ولا أحجامها) ===== */
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes softPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(255,215,0,0.45); } 50% { box-shadow: 0 0 0 7px rgba(255,215,0,0); } }
+        @keyframes shimmer { 0% { background-position: -180% 0; } 100% { background-position: 180% 0; } }
+        @keyframes floatSoft { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+
+        /* دخول ناعم للشاشات والقوائم */
+        #rolesScreen .role-box { animation: fadeUp 0.35s ease both; }
+        .room-card { animation: fadeUp 0.3s ease both; }
+        .msg-row { animation: fadeUp 0.25s ease both; }
+
+        /* نبض حول صندوق الدور النشط - حركة ظل فقط */
+        .active-turn-box { animation: softPulse 1.9s ease-in-out infinite; }
+
+        /* لمعة تمر على الأزرار الذهبية */
+        .settings-btn-text, .send-msg-btn {
+            background-image: linear-gradient(100deg, transparent 30%, rgba(255,255,255,0.16) 50%, transparent 70%);
+            background-size: 180% 100%; animation: shimmer 4.5s linear infinite;
+        }
+
+        /* استجابة اللمس: حركة فقط */
+        .icon-btn, .settings-btn-text, .role-box, .room-card, .send-msg-btn, .settings-actions button {
+            transition: transform 0.16s ease, box-shadow 0.16s ease, background-color 0.16s ease;
+        }
+        .icon-btn:active, .settings-btn-text:active, .role-box:active,
+        .room-card:active, .send-msg-btn:active, .settings-actions button:active { transform: scale(0.95); }
+        .icon-btn:hover, .settings-btn-text:hover { transform: translateY(-2px); }
+        .role-box:hover { transform: translateY(-3px); }
+
+        /* المؤقت يطفو بلطف عند اقتراب الوقت */
+        .turn-timer.timer-danger { animation: floatSoft 0.9s ease-in-out infinite; }
+
         @keyframes popInClue {
             0% { transform: scale(0.5); opacity: 0; }
             80% { transform: scale(1.05); opacity: 1; }
@@ -418,10 +458,19 @@
         /* عند ظهور زر التأكيد: ننزل النص رأسياً ونزيحه عن ركن الزر أفقياً
            حتى تبقى الكلمة كاملة الظهور مهما كان حجم الشاشة */
         .word-card { box-sizing: border-box; overflow: hidden; }
-        .word-card.has-confirm { padding-top: 16px; }
-        .word-card.has-confirm .word-text-box { padding-right: 18px; }
-        /* الكلمات الطويلة تلتف بدل أن تختفي تحت الزر */
-        .word-text-box { overflow-wrap: anywhere; word-break: break-word; text-align: center; max-width: 100%; }
+        /* حشو علوي يساوي ارتفاع الزر كاملاً => النص أسفله دائماً،
+           ويبقى عرض البطاقة كله متاحاً للكلمة فلا تحتاج للتقطيع */
+        .word-card.has-confirm { padding-top: 25px; }
+        /* أحجام خط متدرجة للكلمات الطويلة حتى تظهر كاملة بلا تقطيع */
+        .word-text-box.len-m { font-size: clamp(12px, 3.3vw, 18px); }
+        .word-text-box.len-l { font-size: clamp(10px, 2.8vw, 15px); }
+        .word-text-box.len-xl { font-size: clamp(9px, 2.4vw, 13px); }
+        /* الكلمة لا تنكسر أبداً في منتصفها؛ تصغر تلقائياً لتناسب البطاقة.
+           والبطاقة ذات كلمتين تلتف بين الكلمتين فقط (عند المسافة) */
+        .word-text-box {
+            overflow-wrap: normal; word-break: keep-all; hyphens: none;
+            text-align: center; max-width: 100%; white-space: normal;
+        }
         .word-neutral .word-text-box, .word-card.hidden-color .word-text-box { color: #111; text-shadow: 1px 1px 2px rgba(255,255,255,0.7); }
         .word-red .word-text-box, .word-blue .word-text-box, .word-black .word-text-box { color: white; text-shadow: 1px 1px 4px rgba(0,0,0,0.9); }
 
@@ -504,12 +553,12 @@
 
         /* مؤقت الدور */
         .turn-timer {
-            background: rgba(0,0,0,0.55); color: #ffd700; border: 1px solid rgba(255,215,0,0.45);
-            border-radius: 10px; padding: 4px 11px; font-weight: 900; font-size: 14px;
-            font-family: 'Cairo', sans-serif; min-width: 58px; text-align: center; display: inline-block;
+            background: transparent; color: #ffd700; border: none;
+            border-radius: 0; padding: 4px 6px; font-weight: 900; font-size: 15px;
+            font-family: 'Cairo', sans-serif; min-width: 52px; text-align: center; display: inline-block;
         }
         .turn-timer.timer-danger {
-            color: #fff; background: #b71c1c; border-color: #ff5252;
+            color: #ff5252; background: transparent; border-color: transparent;
         }
 
         /* سجل الجولة */
@@ -562,8 +611,13 @@
                 <label>حجم مربع التلميح <span class="value-display" id="clueScaleDisplay">100%</span></label>
                 <input type="range" id="clueScaleSlider" min="60" max="140" value="100" step="1">
             </div>
+            <div class="settings-slider-group">
+                <label>الصوت</label>
+                <button class="sound-setting-btn" id="soundSettingBtn" onclick="toggleSound()">🔊 الصوت مفعّل</button>
+            </div>
             <div class="settings-actions">
                 <button class="save-scale-btn" onclick="saveSettings()">💾 تثبيت</button>
+                <button class="reset-settings-btn" onclick="resetSettings()">↺ الإعدادات الافتراضية</button>
                 <button class="surrender-in-settings" id="surrenderSettingsBtn" style="display:none;" onclick="surrenderGame()">انسحاب</button>
                 <button class="close-settings" onclick="closeSettings()">إغلاق</button>
             </div>
@@ -728,7 +782,6 @@
             <button class="icon-btn" id="ownerExitGameBtn" style="display:none; background:#a00000; color:white; border-color:#ff4444;" onclick="exitRoom()">🚪 خروج</button>
             <span class="turn-timer" id="turnTimer" style="display:none;">⏱ 90</span>
             <button class="icon-btn log-btn" onclick="openRoundLog()" title="سجل الجولة">📜 السجل <span class="log-badge" id="logCountBadge">0</span></button>
-            <button class="icon-btn" id="soundToggleBtn" onclick="toggleSound()" title="الصوت">🔊</button>
         </div>
 
         <div class="game-layout">
@@ -887,7 +940,15 @@
             try { localStorage.setItem('cn_sound', soundEnabled ? 'on' : 'off'); } catch (e) {}
             const b = document.getElementById('soundToggleBtn');
             if (b) b.innerText = soundEnabled ? '🔊' : '🔇';
+            updateSoundBtnUI();
             if (soundEnabled) SFX.tick();
+        }
+
+        function updateSoundBtnUI() {
+            const sb = document.getElementById('soundSettingBtn');
+            if (!sb) return;
+            sb.innerText = soundEnabled ? '🔊 الصوت مفعّل' : '🔇 الصوت مكتوم';
+            if (soundEnabled) sb.classList.remove('sound-off'); else sb.classList.add('sound-off');
         }
 
         // ===== حماية: تهريب النصوص قبل حقنها في HTML (يمنع XSS) =====
@@ -2596,11 +2657,14 @@
                 const btnDisplay = (!isSiteOwner && currentPlayer.currentRoleId && currentPlayer.currentRoleId.includes('Guesser') && !rev) ? 'block' : 'none';
 
                 const confirmClass = btnDisplay === 'block' ? ' has-confirm' : '';
+                // أطول كلمة مفردة داخل البطاقة تحدد حجم الخط، فلا تُقطع أبداً
+                const longest = String(word).split(/\s+/).reduce((a, w) => Math.max(a, w.length), 0);
+                const lenClass = longest >= 11 ? ' len-xl' : longest >= 9 ? ' len-l' : longest >= 7 ? ' len-m' : '';
                 html += `
                     <div class="word-card ${displayClass} ${revealedClass}${confirmClass}" id="card-${i}" onclick="toggleDoubt(${i})">
                         ${rev && revBy ? `<img src="${safeImgSrc(revBy)}" class="guesser-avatar-overlay">` : ''}
                         <div class="confirm-btn" onclick="confirmGuess(event, ${i})" style="display:${btnDisplay}"></div>
-                        <span class="word-text-box" id="word-text-${i}">${escapeHtml(word)}</span>
+                        <span class="word-text-box${lenClass}" id="word-text-${i}">${escapeHtml(word)}</span>
                         <div class="doubt-names" id="doubt-${i}"></div>
                     </div>
                 `;
@@ -2864,10 +2928,27 @@
             }
             
             applyScales();
+            updateSoundBtnUI();
             overlay.style.display = 'flex';
         }
 
         function closeSettings() { document.getElementById('settingsOverlay').style.display = 'none'; }
+
+        // إرجاع كل الإعدادات (أحجام القوائم والبطاقات والصوت) إلى وضعها الافتراضي
+        function resetSettings() {
+            try {
+                localStorage.removeItem('cardScale');
+                localStorage.removeItem('infoScale');
+                localStorage.removeItem('clueScale');
+                localStorage.setItem('cn_sound', 'on');
+            } catch (e) {}
+            soundEnabled = true;
+            const b = document.getElementById('soundToggleBtn');
+            if (b) b.innerText = '🔊';
+            updateSoundBtnUI();
+            applyScales();
+            showAlert('تم إرجاع الإعدادات إلى الوضع الافتراضي');
+        }
 
         // ===== حفظ الاسم والأفتار بين الزيارات =====
         function saveProfile() {
