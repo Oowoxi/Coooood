@@ -125,6 +125,25 @@
         .settings-actions .surrender-in-settings { background: #d32f2f; color: white; }
         .settings-actions .save-scale-btn { background: #2e7d32; color: white; }
         .settings-actions .reset-settings-btn { background: #455a64; color: #fff; }
+        .kick-btn {
+            background: #7f1d1d; color: #fff; border: 2px solid #ff5252; border-radius: 12px;
+            padding: 8px 18px; font-family: 'Cairo', sans-serif; font-weight: 900; font-size: 14px;
+            cursor: pointer; transition: transform 0.16s ease, background-color 0.16s ease;
+        }
+        .kick-btn:hover { background: #a02020; }
+        .kick-btn:active { transform: scale(0.95); }
+        .kick-row {
+            display: flex; align-items: center; gap: 10px; padding: 8px 10px; margin-bottom: 8px;
+            background: rgba(255,255,255,0.06); border-radius: 10px;
+        }
+        .kick-row img { width: 38px; height: 38px; border-radius: 50%; object-fit: cover; }
+        .kick-row .kick-name { flex: 1; font-weight: 900; color: #fff; font-size: 15px; }
+        .kick-row button {
+            background: #b71c1c; color: #fff; border: none; border-radius: 8px; padding: 7px 16px;
+            font-family: 'Cairo', sans-serif; font-weight: 900; cursor: pointer; font-size: 14px;
+            transition: transform 0.16s ease;
+        }
+        .kick-row button:active { transform: scale(0.94); }
         .sound-setting-btn {
             width: 100%; padding: 11px; border-radius: 12px; border: 2px solid rgba(212,175,55,0.5);
             background: rgba(0,0,0,0.45); color: #ffd700; font-weight: 900; font-size: 15px;
@@ -193,10 +212,65 @@
         }
         .send-msg-btn:hover { background: #e6c200; }
 
-        #countdownText {
-            color: #32CD32; font-size: 32px; font-weight: 900; display: none;
-            margin-left: 10px; text-shadow: 0 0 10px rgba(50, 205, 50, 0.8);
+        /* العدّاد القديم الصغير: مخفي، استُبدل بالعدّاد الكبير */
+        #countdownText { display: none !important; }
+
+        /* ===== العد التنازلي الكبير ===== */
+        #countdownOverlay {
+            display: none; position: fixed; inset: 0; z-index: 9000;
+            align-items: center; justify-content: center; flex-direction: column;
+            background: rgba(0, 0, 0, 0.82);
+            /* حركة الظهور: opacity فقط = خفيفة جداً على المعالج */
+            animation: cdFadeIn 0.28s ease both;
+            will-change: opacity;
         }
+        #countdownBig {
+            font-family: 'Cairo', sans-serif; font-weight: 900;
+            font-size: clamp(90px, 34vw, 220px); line-height: 1;
+            color: #ffd700; text-shadow: 0 0 26px rgba(255, 215, 0, 0.65);
+            will-change: transform, opacity;
+        }
+        /* الحركة على transform/opacity فقط (تعمل على كرت الشاشة) */
+        #countdownBig.cd-tick { animation: cdPop 0.62s cubic-bezier(0.22, 1.2, 0.36, 1) both; }
+        #countdownBig.cd-go {
+            font-size: clamp(52px, 16vw, 110px); color: #32CD32;
+            text-shadow: 0 0 30px rgba(50, 205, 50, 0.8);
+            animation: cdGo 0.55s cubic-bezier(0.22, 1.2, 0.36, 1) both;
+        }
+        #countdownLabel {
+            margin-top: 14px; color: #fff; font-weight: 900;
+            font-size: clamp(14px, 4.2vw, 20px); opacity: 0.9;
+            font-family: 'Cairo', sans-serif; letter-spacing: 1px;
+        }
+        #countdownRing {
+            position: absolute; width: clamp(180px, 62vw, 320px); height: clamp(180px, 62vw, 320px);
+            border: 3px solid rgba(255, 215, 0, 0.35); border-radius: 50%;
+            will-change: transform, opacity;
+        }
+        #countdownRing.cd-tick { animation: cdRing 0.9s ease-out both; }
+
+        @keyframes cdFadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes cdPop {
+            0%   { transform: scale(0.45); opacity: 0; }
+            45%  { transform: scale(1.12); opacity: 1; }
+            70%  { transform: scale(0.98); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes cdGo {
+            0%   { transform: scale(0.6); opacity: 0; }
+            55%  { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes cdRing {
+            0%   { transform: scale(0.7); opacity: 0.9; }
+            100% { transform: scale(1.35); opacity: 0; }
+        }
+        /* الانتقال الانسيابي لشاشة اللعب */
+        @keyframes gameEnter {
+            from { opacity: 0; transform: scale(0.985); }
+            to   { opacity: 1; transform: scale(1); }
+        }
+        #gameScreen.entering { animation: gameEnter 0.4s ease-out both; will-change: transform, opacity; }
 
         .input-group { margin-bottom: 25px; display: flex; flex-direction: column; align-items: center; }
         .avatar-upload-container {
@@ -480,6 +554,11 @@
         }
 
         .word-card.revealed { animation: cardRevealEpic 0.55s cubic-bezier(0.34, 1.4, 0.64, 1) forwards; border-bottom-width: 2px; cursor: default; }
+        /* بطاقة كُشفت سابقاً: تبقى بشكلها النهائي بلا إعادة حركة */
+        .word-card.revealed.no-reveal-anim {
+            animation: none; transform: scale(var(--card-scale));
+            filter: grayscale(10%) brightness(0.9); box-shadow: inset 0 0 15px rgba(0,0,0,0.7);
+        }
         .word-card.revealed .word-text-box { transform: scale(1.1); }
         .word-card.revealed .guesser-avatar-overlay { animation: fadeInOverlay 0.8s ease forwards; }
 
@@ -596,12 +675,28 @@
         </div>
     </div>
 
+    <div class="custom-alert-overlay" id="kickModal">
+        <div class="custom-alert-box" style="max-width: 460px;">
+            <h3 style="color:#ff6b6b; margin-top:0;">🚫 طرد لاعب</h3>
+            <p style="font-size:14px; color:#bbb; margin:6px 0 12px;">المطرود لا يستطيع الدخول للغرفة لمدة دقيقة</p>
+            <div id="kickList" style="max-height:50vh; overflow-y:auto; text-align:right; margin:10px 0;"></div>
+            <button onclick="closeKickModal()" style="background:#444; border-radius:10px; padding:8px 25px; font-family:'Cairo'; font-weight:bold; cursor:pointer; color:white; border:none; font-size:15px;">إغلاق</button>
+        </div>
+    </div>
+
+    <!-- العد التنازلي الكبير في منتصف الشاشة -->
+    <div id="countdownOverlay">
+        <div id="countdownRing"></div>
+        <div id="countdownBig">3</div>
+        <div id="countdownLabel">استعدوا... اللعبة تبدأ</div>
+    </div>
+
     <div class="settings-overlay" id="settingsOverlay">
         <div class="settings-box">
             <h3>⚙️ الإعدادات</h3>
             <div class="settings-slider-group">
-                <label>حجم بطاقات اللعب <span class="value-display" id="cardScaleDisplay">100%</span></label>
-                <input type="range" id="cardScaleSlider" min="60" max="140" value="100" step="1">
+                <label>حجم بطاقات اللعب <span class="value-display" id="cardScaleDisplay">111%</span></label>
+                <input type="range" id="cardScaleSlider" min="60" max="140" value="111" step="1">
             </div>
             <div class="settings-slider-group">
                 <label>حجم مربعات معلومات اللاعبين <span class="value-display" id="infoScaleDisplay">100%</span></label>
@@ -754,8 +849,9 @@
         <div class="players-lobby" id="playersLobby"></div>
 
         <div class="random-teams-wrapper">
-            <button class="leave-role-btn" id="leaveBtn" onclick="leaveRole()">التخلي عن المنصب</button>
+            <button class="leave-role-btn" id="leaveBtn" onclick="leaveRole()">التخلي عن الدور</button>
             <button class="random-teams-btn" id="randomTeamsBtn" onclick="randomizeTeams()" style="display:none;">تيمات عشوائيه</button>
+            <button class="kick-btn" id="kickBtn" onclick="openKickModal()" style="display:none;">🚫 طرد</button>
         </div>
 
         <h2 style="margin-top: 3px; margin-bottom: 10px; font-size: 18px;">اختر فريقك ودورك</h2>
@@ -1004,6 +1100,7 @@
         let heartbeats = {};                  // نسخة محلية من النبضات
         let seatRecoveryTried = false;        // منع تكرار محاولة استعادة المقعد
         let isLeavingPage = false;            // إغلاق حقيقي للصفحة: لا تُستعاد المقاعد بعده
+        let kickedOut = false;                // طُردت للتو (لمنع رسائل الإلغاء المزدوجة)
         let PENDING_DC_REF = null;            // game/pendingDisconnect
         let reconnectInterval = null;         // مؤقّت العد التنازلي المحلي
         let lastKnownPlayers = {};            // لقطة أسماء اللاعبين قبل الحذف (لمعرفة من غادر)
@@ -1342,6 +1439,8 @@
 
             document.getElementById('victoryText').innerHTML = '';
             hideGameOverlays();
+            hideBigCountdown();
+            const kbc = document.getElementById('kickBtn'); if (kbc) kbc.style.display = 'none';
             stopTurnTimer(); timerTurnRef = ''; turnTimerFiredFor = '';
             clearRoundLog();
             activeClue = { word: "", num: "-" };
@@ -1361,7 +1460,7 @@
                 chatListenersAttached = false;
                 gameState = { players: {}, roles: {} };
             }
-            document.getElementById('countdownText').style.display = 'none';
+            document.getElementById('countdownText').style.display = 'none'; hideBigCountdown();
         }
 
         function hideGameOverlays() {
@@ -1375,6 +1474,7 @@
             document.getElementById('guesserClueArea').style.display = 'none';
             document.getElementById('surrenderSettingsBtn').style.display = 'none';
             document.getElementById('cardsGrid').innerHTML = '';
+            const km = document.getElementById('kickModal'); if (km) km.style.display = 'none';
             document.querySelectorAll('.team-box').forEach(b => b.classList.remove('active-turn-box'));
         }
 
@@ -1390,6 +1490,7 @@
             if (GLOBAL_CHAT_REF) GLOBAL_CHAT_REF.off();
             if (PENDING_DC_REF) PENDING_DC_REF.off();
             if (HEARTBEAT_REF) HEARTBEAT_REF.off();
+            if (GAME_REF) { GAME_REF.child('kicked').off(); GAME_REF.child('bans').off(); }
             if (SPECTATORS_REF) SPECTATORS_REF.off();
             if (GAME_REF) GAME_REF.child('roomDeleted').off();
             gameListenersAttached = false;
@@ -1578,6 +1679,15 @@
         function attemptJoinRoom(rId) {
             const room = allRoomsData[rId];
             if (!room) { showAlert('هذه الغرفة لم تعد موجودة'); return; }
+            // المطرود ممنوع من العودة حتى تنقضي الدقيقة (المالك المشاهد مستثنى)
+            if (!isSiteOwner) {
+                const banUntil = getLocalBan(rId);
+                if (banUntil > Date.now()) {
+                    const secs = Math.ceil((banUntil - Date.now()) / 1000);
+                    showAlert(`تم طردك من هذه الغرفة، يمكنك العودة بعد ${secs} ثانية`);
+                    return;
+                }
+            }
             const pCount = room.game && room.game.players ? Object.keys(room.game.players).length : 0;
             // المالك مشاهد مخفي: لا يُحسب ضمن العدد ولا تمنعه الغرفة الممتلئة
             if (!isSiteOwner && pCount >= room.maxPlayers) { showAlert('الغرفة ممتلئة'); return; }
@@ -1785,6 +1895,22 @@
             });
 
             // فترة انتظار عودة لاعب منقطع
+            // إشعار الطرد الموجّه لي
+            GAME_REF.child('kicked').on('value', (snap) => {
+                const all = snap.val() || {};
+                if (!myPlayerId || !all[myPlayerId]) return;
+                const info = all[myPlayerId];
+                const roomId = CURRENT_ROOM_ID;
+                const until = info.until || (Date.now() + KICK_BAN_MS);
+                setLocalBan(roomId, until);
+                // نظّف الإشعار ثم اخرج للقائمة
+                GAME_REF.child('kicked').child(myPlayerId).remove().catch(() => {});
+                const secs = Math.max(1, Math.ceil((until - Date.now()) / 1000));
+                kickedOut = true;
+                exitRoom();
+                showAlert(`تم طردك من الغرفة. يمكنك العودة بعد ${secs} ثانية`);
+            });
+
             HEARTBEAT_REF.on('value', (snap) => {
                 heartbeats = snap.val() || {};
                 // نظافة: احذف نبضات من لم يعودوا لاعبين (صاحب الغرفة فقط)
@@ -1853,6 +1979,8 @@
                 if (currentPlayer.isOwner) randomBtn.style.display = 'inline-block';
                 else randomBtn.style.display = 'none';
                 if (leaveBtn.style.display === 'inline-block') randomBtn.style.display = 'none';
+                updateKickBtnVisibility();
+                if (document.getElementById('kickModal').style.display === 'flex') renderKickList();
 
                 checkPlayersIntegrity();
             });
@@ -1871,6 +1999,7 @@
                 const randomBtn = document.getElementById('randomTeamsBtn');
                 if (currentPlayer.currentRoleId) { leaveBtn.style.display = 'inline-block'; randomBtn.style.display = 'none'; } 
                 else { if (currentPlayer.isOwner) randomBtn.style.display = 'inline-block'; leaveBtn.style.display = 'none'; }
+                updateKickBtnVisibility();
                 checkPlayersIntegrity();
             });
 
@@ -1911,9 +2040,13 @@
                 if (data.gameStarted === true) {
                     // اللعبة بدأت على الخادم: زامن الحالة المحلية حتى يدخل كل اللاعبين
                     gameStartedFlag = true;
+                    const wasHidden = document.getElementById('gameScreen').style.display !== 'flex';
                     document.getElementById('rolesScreen').style.display = 'none';
                     document.getElementById('gameScreen').style.display = 'flex';
                     document.body.classList.add('game-active');
+                    // الانتقال الانسيابي مرة واحدة فقط عند الدخول الفعلي للعبة
+                    if (wasHidden) { hideBigCountdown(); playGameEnterTransition(); }
+                    updateKickBtnVisibility();   // يختفي زر الطرد أثناء اللعب
                     updateTurnUI(); updateWriterMode();
                     // أعد تشغيل مؤقت الدور عند كل تغيير فعلي للدور
                     if (newTurn && newTurn !== timerTurnRef) { timerTurnRef = newTurn; startTurnTimer(); }
@@ -1921,6 +2054,7 @@
                     applyOwnerViewMode();
                 } else {
                     gameStartedFlag = false;
+                    updateKickBtnVisibility();
                     if (document.getElementById('gameScreen').style.display === 'flex') {
                         document.getElementById('gameScreen').style.display = 'none';
                         document.getElementById('rolesScreen').style.display = 'block';
@@ -1947,10 +2081,54 @@
 
             COUNTDOWN_REF.on('value', (snap) => {
                 const data = snap.val() || { value: 3, isRunning: false };
-                const el = document.getElementById('countdownText');
-                if (data.isRunning) { el.style.display = 'inline'; el.innerText = data.value; } 
-                else { el.style.display = 'none'; }
+                if (data.isRunning) showBigCountdown(data.value);
+                else hideBigCountdown();
             });
+        }
+
+        // ===== العد التنازلي الكبير في وسط الشاشة =====
+        let lastCountdownValue = null;
+        function showBigCountdown(value) {
+            const ov = document.getElementById('countdownOverlay');
+            const big = document.getElementById('countdownBig');
+            const ring = document.getElementById('countdownRing');
+            const label = document.getElementById('countdownLabel');
+            if (!ov || !big) return;
+            if (ov.style.display !== 'flex') ov.style.display = 'flex';
+            if (value === lastCountdownValue) return;   // لا نعيد الحركة بلا داعٍ
+            lastCountdownValue = value;
+
+            big.classList.remove('cd-tick', 'cd-go');
+            ring.classList.remove('cd-tick');
+            void big.offsetWidth;                        // إعادة تشغيل الحركة
+
+            if (value > 0) {
+                big.innerText = value;
+                label.innerText = 'استعدوا... اللعبة تبدأ';
+                big.classList.add('cd-tick');
+                ring.classList.add('cd-tick');
+                SFX.tick();
+            } else {
+                big.innerText = 'يلا نبدأ!';
+                label.innerText = '';
+                big.classList.add('cd-go');
+            }
+        }
+
+        function hideBigCountdown() {
+            const ov = document.getElementById('countdownOverlay');
+            if (ov) ov.style.display = 'none';
+            lastCountdownValue = null;
+        }
+
+        // انتقال انسيابي خفيف عند دخول شاشة اللعب
+        function playGameEnterTransition() {
+            const gs = document.getElementById('gameScreen');
+            if (!gs) return;
+            gs.classList.remove('entering');
+            void gs.offsetWidth;
+            gs.classList.add('entering');
+            trackTimeout(() => gs.classList.remove('entering'), 500);
         }
 
         function showCluePopupAnimation(word, num) {
@@ -2011,7 +2189,7 @@
                 }
 
                 document.getElementById('victoryOverlay').style.display = 'none';
-                document.getElementById('countdownText').style.display = 'none';
+                document.getElementById('countdownText').style.display = 'none'; hideBigCountdown();
 
                 // ارجع لشاشة الأدوار ونظف واجهة اللعبة
                 document.getElementById('gameScreen').style.display = 'none';
@@ -2377,7 +2555,7 @@
         }
 
         function applyScales() {
-            const cardVal = localStorage.getItem('cardScale') || 100;
+            const cardVal = localStorage.getItem('cardScale') || 111;   // الحجم الافتراضي للبطاقات
             const infoVal = localStorage.getItem('infoScale') || 100;
             const clueVal = localStorage.getItem('clueScale') || 100;
 
@@ -2650,7 +2828,7 @@
             }
             ROLES_REF.child(roleId).set(myPlayerId); PLAYERS_REF.child(myPlayerId).update({ currentRoleId: roleId });
             currentPlayer.currentRoleId = roleId; document.getElementById('leaveBtn').style.display = 'inline-block';
-            COUNTDOWN_REF.update({ isRunning: false }); document.getElementById('countdownText').style.display = 'none';
+            COUNTDOWN_REF.update({ isRunning: false }); document.getElementById('countdownText').style.display = 'none'; hideBigCountdown();
             clearInterval(countdownInterval); checkIfLobbyFull(); updateChatVisibility();
         }
 
@@ -2659,8 +2837,98 @@
             if (isSiteOwner) return;
             ROLES_REF.child(currentPlayer.currentRoleId).set(null); PLAYERS_REF.child(myPlayerId).update({ currentRoleId: null });
             currentPlayer.currentRoleId = null; document.getElementById('leaveBtn').style.display = 'none';
-            COUNTDOWN_REF.update({ isRunning: false }); document.getElementById('countdownText').style.display = 'none';
+            COUNTDOWN_REF.update({ isRunning: false }); document.getElementById('countdownText').style.display = 'none'; hideBigCountdown();
             clearInterval(countdownInterval); updateChatVisibility();
+        }
+
+        // ===== طرد لاعب (لصاحب التاج) مع منع الدخول لمدة دقيقة =====
+        const KICK_BAN_MS = 60000;
+        let BANS_REF = null;
+
+        // زر الطرد يظهر لصاحب التاج فقط وخارج اللعب
+        function updateKickBtnVisibility() {
+            const kb = document.getElementById('kickBtn');
+            if (!kb) return;
+            const show = !isSiteOwner && currentPlayer.isOwner && !!CURRENT_ROOM_ID && !gameStartedFlag;
+            kb.style.display = show ? 'inline-block' : 'none';
+        }
+
+        function openKickModal() {
+            if (isSiteOwner) { showAlert('أنت في وضع المالك: المشاهدة فقط'); return; }
+            if (!currentPlayer.isOwner) { showAlert('فقط مدير الغرفة يمكنه الطرد'); return; }
+            renderKickList();
+            document.getElementById('kickModal').style.display = 'flex';
+        }
+        function closeKickModal() { document.getElementById('kickModal').style.display = 'none'; }
+
+        function renderKickList() {
+            const list = document.getElementById('kickList');
+            if (!list) return;
+            let html = '';
+            for (const pid in gameState.players) {
+                if (pid === myPlayerId) continue;            // لا يطرد نفسه
+                const p = gameState.players[pid];
+                html += `
+                    <div class="kick-row">
+                        <img src="${safeImgSrc(p.avatar)}">
+                        <span class="kick-name">${escapeHtml(p.name)}</span>
+                        <button onclick="kickPlayer('${pid}')">طرد</button>
+                    </div>`;
+            }
+            if (!html) html = '<p style="color:#888; text-align:center;">لا يوجد لاعبون آخرون</p>';
+            list.innerHTML = html;
+        }
+
+        function kickPlayer(pid) {
+            if (isSiteOwner || !currentPlayer.isOwner || !pid || !GAME_REF) return;
+            if (pid === myPlayerId) return;
+            const target = gameState.players[pid];
+            if (!target) { closeKickModal(); return; }
+            const untilTs = Date.now() + KICK_BAN_MS;
+
+            // سجّل الحظر أولاً حتى لا يعود قبل انقضاء الدقيقة
+            GAME_REF.child('bans').child(pid).set({
+                name: target.name || '',
+                until: untilTs,
+                ts: Date.now()
+            }).catch(() => {});
+
+            // أبلغ المطرود ثم أزل مقعده ودوره
+            GAME_REF.child('kicked').child(pid).set({ until: untilTs, ts: Date.now() }).catch(() => {});
+            if (target.currentRoleId && ROLES_REF) ROLES_REF.child(target.currentRoleId).remove().catch(() => {});
+            for (const rid in (gameState.roles || {})) {
+                if (gameState.roles[rid] === pid) ROLES_REF.child(rid).remove().catch(() => {});
+            }
+            if (HEARTBEAT_REF) HEARTBEAT_REF.child(pid).remove().catch(() => {});
+            trackTimeout(() => { PLAYERS_REF.child(pid).remove().catch(() => {}); }, 400);
+
+            closeKickModal();
+            showAlert(`تم طرد ${target.name || 'اللاعب'} لمدة دقيقة`);
+        }
+
+        // هل أنا محظور من هذه الغرفة الآن؟
+        function getBanRemaining(roomId, cb) {
+            const bannedLocal = getLocalBan(roomId);
+            if (bannedLocal > Date.now()) { cb(Math.ceil((bannedLocal - Date.now()) / 1000)); return; }
+            cb(0);
+        }
+        function getLocalBan(roomId) {
+            try {
+                const raw = localStorage.getItem('cn_bans');
+                if (!raw) return 0;
+                const all = JSON.parse(raw) || {};
+                return all[roomId] || 0;
+            } catch (e) { return 0; }
+        }
+        function setLocalBan(roomId, until) {
+            try {
+                const raw = localStorage.getItem('cn_bans');
+                const all = raw ? (JSON.parse(raw) || {}) : {};
+                all[roomId] = until;
+                // نظافة: احذف الحظر المنتهي
+                for (const k in all) { if (all[k] < Date.now()) delete all[k]; }
+                localStorage.setItem('cn_bans', JSON.stringify(all));
+            } catch (e) {}
         }
 
         function randomizeTeams() {
@@ -2695,7 +2963,7 @@
             STATE_REF.child('gameStarted').once('value', (snap) => {
                 if (snap.val()) return;
                 if (filledCount === config.total) { startCountdown(); } 
-                else { COUNTDOWN_REF.update({ isRunning: false }); document.getElementById('countdownText').style.display = 'none'; clearInterval(countdownInterval); }
+                else { COUNTDOWN_REF.update({ isRunning: false }); document.getElementById('countdownText').style.display = 'none'; hideBigCountdown(); clearInterval(countdownInterval); }
             });
         }
 
@@ -2721,7 +2989,7 @@
             STATE_REF.child('gameStarted').once('value', (snap) => {
                 if (snap.val() === true) {
                     document.getElementById('rolesScreen').style.display = 'none'; document.getElementById('gameScreen').style.display = 'flex';
-                    document.body.classList.add('game-active'); updateTurnUI(); updateWriterMode();
+                    document.body.classList.add('game-active'); playGameEnterTransition(); updateTurnUI(); updateWriterMode();
                     document.getElementById('surrenderSettingsBtn').style.display = 'inline-block'; return;
                 }
 
@@ -2756,8 +3024,10 @@
             STATE_REF.update({ currentTurn: 'redWriter', redWordsLeft: 9, blueWordsLeft: 8, gameStarted: true, winner: '', blackWordWinner: false, bySurrender: false });
             CLUE_REF.set({ word: '', num: '-' }); WINNER_REF.set(''); victoryShown = false; gameCancelled = false;
 
+            const wasHiddenInit = document.getElementById('gameScreen').style.display !== 'flex';
             document.getElementById('rolesScreen').style.display = 'none'; document.getElementById('gameScreen').style.display = 'flex';
             document.body.classList.add('game-active'); document.getElementById('surrenderSettingsBtn').style.display = 'inline-block';
+            if (wasHiddenInit) { hideBigCountdown(); playGameEnterTransition(); }
             updateTurnUI(); updateWriterMode();
         }
 
@@ -2768,9 +3038,13 @@
             else grid.classList.remove('writer-mode');
         }
 
+        // البطاقات التي سبق أن ظهرت حركتها، حتى لا تُعاد الحركة لكل اللوحة عند كل تحديث
+        let animatedCards = new Set();
+
         function renderBoard(words, colors, revealed, revealedBy) {
             const grid = document.getElementById('cardsGrid');
             if (!words || words.length === 0) {
+                animatedCards.clear();
                 grid.innerHTML = '<div style="color:#888;font-size:24px;grid-column:1/6;grid-row:1/6;display:flex;align-items:center;justify-content:center;">جاري تجهيز اللوحة...</div>'; return;
             }
             // المالك يرى كل الألوان مثل الكاتب (مشاهدة كاملة لما يجري)
@@ -2781,7 +3055,10 @@
                 const rev = revealed && revealed[i] === true; const revBy = revealedBy && revealedBy[i] ? revealedBy[i] : '';
                 let displayClass = 'hidden-color';
                 if (rev) { displayClass = color; } else if (isWriter) { displayClass = color; }
-                const revealedClass = rev ? 'revealed' : '';
+                // الحركة تُطبَّق مرة واحدة على البطاقة المكشوفة حديثاً فقط
+                const isNewReveal = rev && !animatedCards.has(i);
+                if (rev) animatedCards.add(i); else animatedCards.delete(i);
+                const revealedClass = rev ? (isNewReveal ? 'revealed' : 'revealed no-reveal-anim') : '';
                 const btnDisplay = (!isSiteOwner && currentPlayer.currentRoleId && currentPlayer.currentRoleId.includes('Guesser') && !rev) ? 'block' : 'none';
 
                 const confirmClass = btnDisplay === 'block' ? ' has-confirm' : '';
