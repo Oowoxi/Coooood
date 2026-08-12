@@ -620,6 +620,21 @@
         }
         .njd-chat-note.njd-chat-note-on { display: flex; }
         .njd-chat-note b { color: var(--silver-br); font-size: 13.5px; }
+        .njd-chat-sa {
+            display: none; align-items: center; gap: 10px; flex-wrap: wrap;
+            justify-content: center; text-align: center;
+            padding: 8px 12px; background: var(--surface-2);
+            border-top: 1px solid var(--line); color: var(--muted);
+            font-size: 12px; line-height: 1.6;
+        }
+        .njd-chat-sa.njd-chat-sa-on { display: flex; }
+        .njd-chat-sa-btn {
+            background: var(--surface-4); color: var(--text);
+            border: 1px solid var(--line-strong); border-radius: 8px;
+            padding: 5px 14px; font-size: 12px; font-family: inherit;
+            cursor: pointer; transition: background .15s ease, transform .15s ease;
+        }
+        .njd-chat-sa-btn:hover { background: var(--line-strong); transform: translateY(-1px); }
         .njd-chat-resize {
             position: absolute; width: 18px; height: 18px; right: 2px; bottom: 2px;
             cursor: nwse-resize; z-index: 5; touch-action: none;
@@ -1116,6 +1131,10 @@
                 <span>يبدو أن الموقع يمنع تضمينه داخل إطار لأسباب أمنية،
                       وهذا قرار من الموقع نفسه لا يمكن (ولا يجوز) تجاوزه.</span>
             </div>
+        </div>
+        <div class="njd-chat-sa" id="njdChatSA">
+            <span>إن ظهر الموقع وكأنك غير مسجّل، فالمتصفح يعزل جلسته داخل الإطار.</span>
+            <button type="button" class="njd-chat-sa-btn" id="njdChatSABtn">استعادة جلستي</button>
         </div>
         <div class="njd-chat-resize" id="njdChatResize" title="تغيير الحجم"></div>
     </div>
@@ -3256,7 +3275,9 @@
             f.id = 'njdChatIframe';
             f.className = 'njd-chat-frame';
             f.title = 'NJD Chat';
-            f.setAttribute('allow', 'clipboard-read; clipboard-write; microphone; camera; autoplay');
+            // 'storage-access' ضرورية: بدونها لا يملك الموقع المُضمَّن حتى حقّ
+            // *طلب* الوصول إلى كوكيزه الأصلية عبر Storage Access API.
+            f.setAttribute('allow', 'storage-access; clipboard-read; clipboard-write; microphone; camera; autoplay');
             f.setAttribute('referrerpolicy', 'no-referrer-when-downgrade');
             f.setAttribute('src', NJD_CHAT_URL);   // آخر مرة يُلمس فيها src
             // أدرج الإطار قبل الغطاء والرسالة ليبقيا فوقه عند الحاجة
@@ -3277,14 +3298,38 @@
 
         function njdChatWin() { return document.getElementById('njdChatFloatingWindow'); }
 
-        function openNjdChatWindow() {
-            initializeNjdChat();
+        // المتصفحات تعزل تخزين المواقع داخل الإطارات (Storage Partitioning)،
+        // فلا يرى الموقع جلستك الأصلية. الحل المعياري الوحيد هو Storage Access API:
+        // نطلب من *المتصفح* أن يسأل المستخدم السماح للموقع باستخدام جلسته الأصلية.
+        // هذا ليس تجاوزاً — المتصفح هو من يقرّر ويسأل، وللمستخدم أن يرفض.
+        // يجب استدعاؤها داخل نقرة المستخدم، وقبل أول تحميل للإطار حتى تُرسل
+        // الكوكيز مع الطلب الأول (لأننا لا نُعيد تحميل الإطار أبداً).
+        async function njdTryStorageAccess() {
+            try {
+                if (typeof document.requestStorageAccessFor === 'function') {
+                    await document.requestStorageAccessFor(NJD_CHAT_URL);
+                }
+            } catch (e) {
+                // المتصفح رفض أو لا يدعم الآلية — نكمل بجلسة معزولة
+            }
+        }
+
+        let njdChatBooting = false;
+
+        async function openNjdChatWindow() {
             const w = njdChatWin();
             if (!w) return;
             njdClampIntoView();
             w.classList.add('njd-chat-visible');
             w.setAttribute('aria-hidden', 'false');
             njdSyncMaxBtn();
+
+            // التحميل الأول فقط: نحاول استعادة الجلسة الأصلية ثم نبني الإطار مرة واحدة
+            if (!njdChatInitialized && !njdChatBooting) {
+                njdChatBooting = true;
+                try { await njdTryStorageAccess(); } finally { initializeNjdChat(); }
+                njdRefreshSABar();
+            }
         }
 
         // × : إخفاء بصري فقط — الإطار يبقى حيّاً ومركّباً في DOM
@@ -3340,7 +3385,37 @@
             njdApplyPos(x, y);
         }
 
+        // يظهر شريط «استعادة جلستي» فقط إن كان الإذن غير ممنوح فعلاً.
+        async function njdRefreshSABar() {
+            const bar = document.getElementById('njdChatSA');
+            if (!bar) return;
+            let show = false;
+            try {
+                if (navigator.permissions && typeof document.requestStorageAccessFor === 'function') {
+                    const st = await navigator.permissions.query({
+                        name: 'top-level-storage-access', requestedOrigin: NJD_CHAT_URL
+                    });
+                    show = (st.state !== 'granted');
+                }
+            } catch (e) { show = false; }   // المتصفح لا يدعم الاستعلام — لا تُزعج المستخدم
+            bar.classList.toggle('njd-chat-sa-on', show);
+        }
+
         function njdChatSetup() {
+            const saBtn = document.getElementById('njdChatSABtn');
+            if (saBtn) saBtn.addEventListener('click', async () => {
+                saBtn.disabled = true;
+                saBtn.textContent = 'جارٍ المحاولة…';
+                await njdTryStorageAccess();
+                // إعادة تحميل واحدة بطلب صريح من المستخدم: الكوكيز لا تُرسل
+                // إلا مع طلب جديد. خارج هذا الزر لا يُلمس src إطلاقاً.
+                const f = document.getElementById('njdChatIframe');
+                if (f) f.setAttribute('src', NJD_CHAT_URL);
+                saBtn.disabled = false;
+                saBtn.textContent = 'استعادة جلستي';
+                njdRefreshSABar();
+            });
+
             const w = njdChatWin(); if (!w) return;
             const header = document.getElementById('njdChatHeader');
             const closeB = document.getElementById('njdChatClose');
