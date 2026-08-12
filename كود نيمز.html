@@ -368,7 +368,7 @@
         /* ===== اللمعة المنزلقة: نفس أسلوب زر الإعدادات (شريط ضوء يمرّ)
            لكنها تعبر حرفاً واحداً في كل لحظة ثم تنتقل للذي يليه ثم تعيد الكرّة.
            لا نبض ولا تغيّر حجم — مجرد ضوء ينزلق فوق سطح الحرف. ===== */
-        .brand-logo { --dur: 3.4s; --n: 12; }
+        .brand-logo { --dur: 6s; --n: 12; }
         .glint {
             display: inline-block; position: relative;
             color: var(--silver-dim);
@@ -379,16 +379,17 @@
             background-position: 150% 0;
             -webkit-background-clip: text; background-clip: text;
             -webkit-text-fill-color: transparent;
-            animation: glintSlide var(--dur) linear infinite;
+            animation: glintSlide var(--dur) cubic-bezier(0.4, 0, 0.25, 1) infinite;
             animation-delay: calc(var(--i) * (var(--dur) / var(--n)));
             will-change: background-position;
         }
         .brand-space { display: inline-block; width: 0.42em; }
 
-        /* الضوء يعبر الحرف خلال أول 12% من الدورة ثم يبقى الحرف ساكناً */
+        /* الضوء يعبر الحرف خلال أول 18% من الدورة (≈1.08s) ثم يسكن الحرف
+           حتى تعود الدورة. أبطأ من السابق 2.6× ليبدو الانزلاق فخماً. */
         @keyframes glintSlide {
             0%   { background-position: 150% 0; }
-            12%  { background-position: -50% 0; }
+            18%  { background-position: -50% 0; }
             100% { background-position: -50% 0; }
         }
 
@@ -401,7 +402,7 @@
             color: var(--silver-dim); padding-right: 7px;
         }
         .brand-mini {
-            --dur: 2.6s; --n: 12;
+            --dur: 6s; --n: 12;
             font-size: 13px; font-weight: 700; letter-spacing: 3px;
             margin-bottom: 2px; flex-shrink: 0; user-select: none;
         }
