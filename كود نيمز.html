@@ -648,24 +648,26 @@
         /* ===== تأثير الدخول الموحّد =====
            نفس إحساس الانتقال عند «دخول اللوبي» (fadeIn 0.4s) مطبّقاً على
            النوافذ المنبثقة: قائمة الغرف، إنشاء غرفة، الشات العام، الطرد. */
-        .screen-enter { animation: fadeIn 0.4s ease-out; }
+        /* حركة خالصة: transform فقط — بلا أي تغيّر في الشفافية */
+        .screen-enter { animation: screenIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) both; }
+        @keyframes screenIn {
+            0%   { transform: translateY(16px); }
+            100% { transform: translateY(0); }
+        }
         .modal-enter > .custom-alert-box,
         .modal-enter > .chat-modal-box { animation: modalIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) both; }
-        .modal-enter { animation: fadeInOverlay 0.28s ease-out both; }
         @keyframes modalIn {
-            0%   { opacity: 0; transform: translateY(14px) scale(0.94); }
-            100% { opacity: 1; transform: translateY(0) scale(1); }
+            0%   { transform: translateY(16px) scale(0.94); }
+            100% { transform: translateY(0) scale(1); }
         }
 
-        /* خروج نافذة التلميح: عكس popInClue تماماً */
+        /* خروج نافذة التلميح: عكس حركة الدخول — تصغير فقط بلا تلاشٍ */
         @keyframes popOutClue {
-            0%   { transform: scale(1); opacity: 1; }
-            25%  { transform: scale(1.05); opacity: 1; }
-            100% { transform: scale(0.5); opacity: 0; }
+            0%   { transform: scale(1); }
+            25%  { transform: scale(1.05); }
+            100% { transform: scale(0.5); }
         }
-        .clue-popup-overlay.clue-leaving { animation: fadeOutOverlay 0.42s ease-in both; }
         .clue-popup-overlay.clue-leaving .clue-popup-box { animation: popOutClue 0.42s ease-in both; }
-        @keyframes fadeOutOverlay { from { opacity: 1; } to { opacity: 0; } }
 
         @keyframes popInClue {
             0% { transform: scale(0.5); opacity: 0; }
@@ -974,7 +976,7 @@
         <div class="brand-logo">
             <span class="brand-njd">NJD</span>
             <span class="brand-code">CODE NAMES</span>
-            <div class="brand-ver">v3.3</div>
+            <div class="brand-ver">v3.4</div>
         </div>
         <h2 class="welcome-glint">أهلاً بك، في كود نيمز نجد ضع افتار واسم للبدء.</h2>
         <div class="input-group">
