@@ -605,8 +605,15 @@
         .njd-chat-btn:hover { background: var(--silver); color: #000; }
         .njd-chat-btn svg { width: 13px; height: 13px; display: block; }
         .njd-chat-close:hover { background: var(--danger); color: #fff; border-color: var(--danger-br); }
-        .njd-chat-body { position: relative; flex: 1 1 auto; min-height: 0; background: var(--void); }
-        .njd-chat-frame { display: block; width: 100%; height: 100%; border: 0; background: var(--void); }
+        .njd-chat-body { position: relative; flex: 1 1 auto; min-height: 0; overflow: hidden; background: var(--void); }
+        /* الإطار يُثبَّت على «عرض تصميم» ثابت ثم يُصغَّر بصرياً بـ transform.
+           بهذا لا يرى الموقع أن النافذة صغرت، فلا يعيد ترتيب نفسه إطلاقاً —
+           يتصغّر كما لو أبعدتَ بالزوم. الأبعاد تُضبط من njdFitFrame(). */
+        .njd-chat-frame {
+            display: block; position: absolute; top: 0; left: 0;
+            width: 100%; height: 100%; border: 0; background: var(--void);
+            transform-origin: top left;
+        }
         /* غطاء يظهر أثناء السحب فقط كي لا يبتلع الإطار مؤشّر الفأرة.
            في الوضع العادي لا يوجد أي عنصر فوق الإطار. */
         .njd-chat-shield { display: none; position: absolute; inset: 0; z-index: 3; }
@@ -636,19 +643,28 @@
         }
         .njd-chat-sa-btn:hover { background: var(--line-strong); transform: translateY(-1px); }
         .njd-chat-resize {
-            position: absolute; width: 18px; height: 18px; right: 2px; bottom: 2px;
-            cursor: nwse-resize; z-index: 5; touch-action: none;
+            position: absolute; width: 18px; height: 18px; left: 2px; bottom: 2px;
+            cursor: nesw-resize; z-index: 5; touch-action: none;
             background:
-              linear-gradient(135deg, transparent 46%, var(--line-strong) 46%, var(--line-strong) 56%, transparent 56%),
-              linear-gradient(135deg, transparent 68%, var(--line-strong) 68%, var(--line-strong) 78%, transparent 78%);
+              linear-gradient(45deg, transparent 46%, var(--line-strong) 46%, var(--line-strong) 56%, transparent 56%),
+              linear-gradient(45deg, transparent 68%, var(--line-strong) 68%, var(--line-strong) 78%, transparent 78%);
         }
         .njd-chat-window.njd-chat-max .njd-chat-resize { display: none; }
+        /* عند التصغير الشديد: ترويسة أنحف وعنوان أصغر حتى تبقى مساحة للموقع.
+           يُضاف الصنف من njdFitFrame() حسب العرض الفعلي. */
+        .njd-chat-window.njd-chat-tiny .njd-chat-header { padding: 4px 6px; gap: 4px; }
+        .njd-chat-window.njd-chat-tiny .njd-chat-title { font-size: 10px; }
+        .njd-chat-window.njd-chat-tiny .njd-chat-btn { width: 20px; height: 20px; }
+        .njd-chat-window.njd-chat-tiny .njd-chat-sa { display: none; }
         @media (max-width: 600px) {
+            /* حجم ابتدائي مريح فقط — وليس إجباراً على ملء الشاشة.
+               المستخدم حرّ في تصغيرها بالمقبض أو تكبيرها بالزر. */
             .njd-chat-window {
-                top: 8px; left: 8px; right: 8px; margin-left: 0;
-                width: auto; height: calc(100dvh - 16px); border-radius: 14px;
+                top: 8px; left: 8px; margin-left: 0;
+                width: calc(100vw - 16px); height: 72dvh; border-radius: 14px;
             }
-            .njd-chat-resize { display: none; }
+            /* مقبض أكبر ليسهل الإمساك به بالإصبع */
+            .njd-chat-resize { width: 30px; height: 30px; }
         }
         @media (prefers-reduced-motion: reduce) { .njd-chat-window { transition: none; } }
 
@@ -3283,12 +3299,50 @@
             // أدرج الإطار قبل الغطاء والرسالة ليبقيا فوقه عند الحاجة
             body.insertBefore(f, body.firstChild);
             njdChatIframe = f;
+            // قياس أولي بعد أن يُنجز المتصفح التخطيط
+            requestAnimationFrame(njdFitFrame);
 
             // بعض المواقع تمنع التضمين؛ نكشف ذلك بلطف بعد مهلة ونعرض رسالة
             // توضيحية بدل نافذة سوداء — دون أي محاولة لتجاوز سياسة الموقع.
             let loaded = false;
             f.addEventListener('load', () => { loaded = true; njdShowNote(false); });
             njdChatProbe = trackTimeout(() => { if (!loaded) njdShowNote(true); }, 9000);
+        }
+
+        // «عرض التصميم» الذي يراه الموقع دائماً مهما صغّر المستخدم النافذة.
+        // نلتقطه مرة واحدة عند أول فتح ولا نغيّره أبداً بعدها، فيبقى تخطيط
+        // الصفحة مجمَّداً على حاله.
+        let njdDesignW = 0, njdDesignH = 0;
+
+        // تُصغّر الإطار بصرياً (زوم) بدل أن تُضيّق عرضه.
+        // النتيجة: الموقع لا يشعر بأي تغيّر في المقاس، فلا يعيد ترتيب عناصره.
+        function njdFitFrame() {
+            const f = njdChatIframe;
+            const body = document.getElementById('njdChatBody');
+            if (!f || !body) return;
+
+            const bw = body.clientWidth, bh = body.clientHeight;
+            if (!bw || !bh) return;
+
+            // أول قياس فقط: نثبّت عرض التصميم على الحجم الطبيعي للنافذة
+            if (!njdDesignW) { njdDesignW = bw; njdDesignH = bh; }
+
+            // العرض وحده يحدّد نسبة الزوم — تماماً كزوم المتصفح الحقيقي.
+            // ولا نكبّر فوق الحجم الطبيعي لئلا يصير الخط ضخماً.
+            const scale = Math.min(bw / njdDesignW, 1);
+
+            // عند التصغير: نُبقي عرض التصميم ونصغّر بصرياً.
+            // عند التكبير: يملأ الإطار المساحة طبيعياً بلا تشويه.
+            const fw = scale < 1 ? njdDesignW : bw;
+            const fh = bh / scale;            // يملأ الارتفاع بعد التصغير بالضبط
+
+            f.style.width  = fw + 'px';
+            f.style.height = fh + 'px';
+            f.style.transform = scale < 1 ? 'scale(' + scale + ')' : 'none';
+
+            // ترويسة مُصغّرة عندما تضيق النافذة فعلاً
+            const win = njdChatWin();
+            if (win) win.classList.toggle('njd-chat-tiny', bw < 300);
         }
 
         function njdShowNote(on) {
@@ -3358,6 +3412,7 @@
         }
 
         function njdSyncMaxBtn() {
+            requestAnimationFrame(njdFitFrame);
             const b = document.getElementById('njdChatMaximize');
             if (!b) return;
             b.innerHTML = njdIcon(njdChatMaximized ? 'restore' : 'max');
@@ -3461,9 +3516,11 @@
             // ===== تغيير الحجم (سطح المكتب) =====
             if (grip) {
                 let rz = false, sx = 0, sy = 0, sw = 0, sh = 0;
+                let sRight = 0;
                 grip.addEventListener('pointerdown', (e) => {
                     const r = w.getBoundingClientRect();
                     rz = true; sx = e.clientX; sy = e.clientY; sw = r.width; sh = r.height;
+                    sRight = r.right;   // نُثبّت الحافة اليمنى مكانها أثناء التحجيم
                     w.classList.add('njd-chat-busy');
                     try { grip.setPointerCapture(e.pointerId); } catch (x) {}
                     e.preventDefault();
@@ -3471,8 +3528,17 @@
                 grip.addEventListener('pointermove', (e) => {
                     if (!rz) return;
                     e.preventDefault();
-                    w.style.width  = Math.max(280, Math.min(sw + (e.clientX - sx), window.innerWidth  - 16)) + 'px';
-                    w.style.height = Math.max(240, Math.min(sh + (e.clientY - sy), window.innerHeight - 16)) + 'px';
+                    // المقبض في الزاوية اليسرى: السحب يساراً يُكبّر (لذا نطرح).
+                    // حدّ أدنى صغير ليتمكّن المستخدم من تصغيرها فعلاً.
+                    const nw = Math.max(200, Math.min(sw - (e.clientX - sx), window.innerWidth  - 16));
+                    const nh = Math.max(170, Math.min(sh + (e.clientY - sy), window.innerHeight - 16));
+                    w.style.width  = nw + 'px';
+                    w.style.height = nh + 'px';
+                    // الحافة اليمنى ثابتة، فالنافذة لا تنزلق أثناء التحجيم
+                    w.style.left = Math.max(8, sRight - nw) + 'px';
+                    w.style.marginLeft = '0';
+                    njdChatMoved = true;
+                    njdFitFrame();
                 });
                 const endRz = (e) => {
                     if (!rz) return; rz = false;
@@ -3483,7 +3549,7 @@
                 grip.addEventListener('pointercancel', endRz);
             }
 
-            window.addEventListener('resize', njdClampIntoView);
+            window.addEventListener('resize', () => { njdClampIntoView(); njdFitFrame(); });
         }
         njdChatSetup();
 
