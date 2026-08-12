@@ -976,7 +976,7 @@
         <div class="brand-logo">
             <span class="brand-njd">NJD</span>
             <span class="brand-code">CODE NAMES</span>
-            <div class="brand-ver">v3.4</div>
+            <div class="brand-ver">v3.5</div>
         </div>
         <h2 class="welcome-glint">أهلاً بك، في كود نيمز نجد ضع افتار واسم للبدء.</h2>
         <div class="input-group">
@@ -1219,6 +1219,9 @@
         
         let activeChatType = null;
         let chatListenersAttached = false;
+        // حدّ الشات العام: مفتاح آخر رسالة كانت موجودة لحظة دخولي الغرفة.
+        // اللاعب الجديد لا يرى ما قبله إطلاقاً (إخفاء عرضي فقط — لا يُحذف شيء من القاعدة).
+        let globalChatCutoffKey = null;
         let gameListenersAttached = false;
         let initialClueLoad = true;
 
@@ -1705,6 +1708,7 @@
                 // تُمسح فقط عند مغادرة الغرفة فعلياً.
                 // مسحها ونحن داخل الغرفة كان يجعل checkPlayersIntegrity يظن أن الغرفة فارغة فيحذف اللعبة ويطرد الجميع.
                 chatListenersAttached = false;
+                globalChatCutoffKey = null;   // حدّ الغرفة السابقة لا يُحمل لغرفة جديدة
                 gameState = { players: {}, roles: {} };
             }
             document.getElementById('countdownText').style.display = 'none'; hideBigCountdown();
@@ -1742,6 +1746,7 @@
             if (GAME_REF) GAME_REF.child('roomDeleted').off();
             gameListenersAttached = false;
             chatListenersAttached = false;
+            globalChatCutoffKey = null;   // حدّ الغرفة السابقة لا يُحمل لغرفة جديدة
         }
 
         function cleanupOrphanRoles() {
@@ -2959,6 +2964,12 @@
             }
         }
 
+        // هل هذا المفتاح لرسالة سابقة للحظة دخولي؟
+        function isBeforeGlobalCutoff(key) {
+            if (!globalChatCutoffKey) return false;   // الغرفة كانت فارغة: كل شيء جديد
+            return String(key) <= String(globalChatCutoffKey);
+        }
+
         function initializeChats() {
             if (chatListenersAttached) return;
             chatListenersAttached = true;
@@ -2966,7 +2977,18 @@
             document.getElementById('mainChatControls').style.display = 'flex';
             updateChatVisibility();
 
-            GLOBAL_CHAT_REF.on('child_added', (snap) => { handleIncomingMessage(snap.val(), 'global'); });
+            // التقط آخر مفتاح موجود الآن، ثم اربط المستمع.
+            // مفاتيح push مرتّبة زمنياً تصاعدياً، فأي مفتاح أكبر منه = رسالة جديدة.
+            // (نعتمد المفاتيح لا الطوابع الزمنية تفادياً لاختلاف ساعات الأجهزة.)
+            GLOBAL_CHAT_REF.once('value', (snap) => {
+                let lastKey = null;
+                snap.forEach((child) => { lastKey = child.key; });
+                globalChatCutoffKey = lastKey;
+                GLOBAL_CHAT_REF.on('child_added', (cs) => {
+                    if (isBeforeGlobalCutoff(cs.key)) return;   // رسالة سابقة لدخولي: تجاهلها
+                    handleIncomingMessage(cs.val(), 'global');
+                });
+            });
 
             let currentPrivatePath = getMyPrivateChatPath();
             if (currentPrivatePath) {
@@ -3031,8 +3053,12 @@
             }
             if (!targetRef) return;
 
+            const isGlobal = (type === 'global');
             targetRef.once('value', (snap) => {
-                snap.forEach((child) => { renderChatMessage(child.val()); });
+                snap.forEach((child) => {
+                    if (isGlobal && isBeforeGlobalCutoff(child.key)) return;   // ما قبل دخولي لا يُعرض
+                    renderChatMessage(child.val());
+                });
                 chatContainer.scrollTop = chatContainer.scrollHeight;
             });
         }
