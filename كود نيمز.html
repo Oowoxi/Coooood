@@ -80,6 +80,7 @@
             100% { transform: translateY(0px); }
         }
 
+        * { -webkit-tap-highlight-color: rgba(255,255,255,0.06); }
         body {
             margin: 0; padding: 0; background-color: var(--bg-dark); color: var(--silver);
             font-family: 'Cairo', sans-serif; text-align: center; overflow-x: hidden;
@@ -354,33 +355,46 @@
             display: flex; flex-direction: column; align-items: center; gap: 2px;
             margin: 4px 0 10px; line-height: 1; user-select: none;
         }
+        /* الحروف عناصر مستقلة، ومحرك RTL يعكس ترتيبها.
+           direction:ltr + unicode-bidi:isolate يضمنان قراءتها NJD CODE NAMES */
+        .brand-logo, .brand-njd, .brand-code, .brand-mini, .brand-njd-mini {
+            direction: ltr; unicode-bidi: isolate;
+        }
         .brand-njd {
             font-size: clamp(38px, 11vw, 60px); font-weight: 900; letter-spacing: 6px;
             font-family: 'Cairo', sans-serif; display: inline-flex;
         }
 
-        /* ===== اللمعة المتنقّلة: تمرّ على حرف ثم تنتقل للذي يليه ثم تعيد الكرّة =====
-           كل حرف عنصر مستقل له فهرس --i، والتأخير = (--i / --n) × مدة الدورة.
-           الحرف في حالته الطبيعية فضّي مطفأ، وعند وصول اللمعة يتوهّج أبيض. */
-        .brand-logo { --dur: 2.6s; --n: 12; }
+        /* ===== اللمعة المنزلقة: نفس أسلوب زر الإعدادات (شريط ضوء يمرّ)
+           لكنها تعبر حرفاً واحداً في كل لحظة ثم تنتقل للذي يليه ثم تعيد الكرّة.
+           لا نبض ولا تغيّر حجم — مجرد ضوء ينزلق فوق سطح الحرف. ===== */
+        .brand-logo { --dur: 3.4s; --n: 12; }
         .glint {
             display: inline-block; position: relative;
             color: var(--silver-dim);
-            animation: glintPass var(--dur) linear infinite;
+            /* شريط الضوء نفسه: تدرّج يتحرك أفقياً فوق الحرف */
+            background-image: linear-gradient(100deg,
+                var(--silver-dim) 38%, #ffffff 50%, var(--silver-dim) 62%);
+            background-size: 300% 100%;
+            background-position: 150% 0;
+            -webkit-background-clip: text; background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: glintSlide var(--dur) linear infinite;
             animation-delay: calc(var(--i) * (var(--dur) / var(--n)));
-            will-change: color, text-shadow;
+            will-change: background-position;
         }
         .brand-space { display: inline-block; width: 0.42em; }
 
-        @keyframes glintPass {
-            0%   { color: var(--silver-dim); text-shadow: none; transform: translateY(0); }
-            /* نافذة اللمعة قصيرة (≈8% من الدورة) فتبدو كوميض يمرّ */
-            4%   { color: #ffffff;
-                   text-shadow: 0 0 10px rgba(255,255,255,0.95), 0 0 26px rgba(255,255,255,0.55);
-                   transform: translateY(-2px); }
-            8%   { color: var(--silver); text-shadow: 0 0 6px rgba(255,255,255,0.28); transform: translateY(0); }
-            22%  { color: var(--silver-dim); text-shadow: none; }
-            100% { color: var(--silver-dim); text-shadow: none; }
+        /* الضوء يعبر الحرف خلال أول 12% من الدورة ثم يبقى الحرف ساكناً */
+        @keyframes glintSlide {
+            0%   { background-position: 150% 0; }
+            12%  { background-position: -50% 0; }
+            100% { background-position: -50% 0; }
+        }
+
+        .brand-ver {
+            font-size: 9px; letter-spacing: 2px; color: var(--silver-deep);
+            margin-top: 3px; font-weight: 700; direction: ltr;
         }
         .brand-code {
             font-size: clamp(11px, 3.1vw, 15px); font-weight: 700; letter-spacing: 7px;
@@ -392,19 +406,11 @@
             margin-bottom: 2px; flex-shrink: 0; user-select: none;
         }
         .brand-njd-mini { font-weight: 900; letter-spacing: 2px; }
-        /* الحروف الكبيرة في الشعار المصغّر تلمع أنصع قليلاً */
-        .brand-njd-mini .glint { animation-name: glintPassMini; }
-        @keyframes glintPassMini {
-            0%   { color: var(--silver-dim); text-shadow: none; }
-            4%   { color: #ffffff; text-shadow: 0 0 8px rgba(255,255,255,0.9); }
-            8%   { color: var(--silver); text-shadow: none; }
-            22%  { color: var(--silver-dim); text-shadow: none; }
-            100% { color: var(--silver-dim); text-shadow: none; }
-        }
 
         /* احترام تفضيل تقليل الحركة */
         @media (prefers-reduced-motion: reduce) {
-            .glint { animation: none; color: var(--silver); }
+            .glint { animation: none; background-image: none;
+                     -webkit-text-fill-color: var(--silver); color: var(--silver); }
         }
 
         .rooms-container { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; max-width: 900px; margin: 0 auto; overflow-y: auto; }
@@ -733,8 +739,9 @@
 
         .confirm-btn {
             position: absolute; top: 2px; right: 2px; width: 22px; height: 22px;
-            background: var(--silver-br) url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="black"><path d="M9 11.24V7.5a2.5 2.5 0 0 1 5 0v3.74c1.21-.81 2-2.18 2-3.74a4.5 4.5 0 0 0-9 0c0 1.56.79 2.93 2 3.74zm9.84 4.63l-4.54-2.26A1.99 1.99 0 0 0 13.4 13h-2.3v-5.5c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v10.74l-3.2-1.07c-.45-.15-.95.06-1.18.47l-.99 1.7 6.46 6.47c.5.5 1.18.79 1.89.79H16.5c1.1 0 2-.9 2-2v-4.5c0-.98-.67-1.8-1.58-1.95l1.92-1.93z"/></svg>') no-repeat center center;
+            background: #ffffff url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="black"><path d="M9 11.24V7.5a2.5 2.5 0 0 1 5 0v3.74c1.21-.81 2-2.18 2-3.74a4.5 4.5 0 0 0-9 0c0 1.56.79 2.93 2 3.74zm9.84 4.63l-4.54-2.26A1.99 1.99 0 0 0 13.4 13h-2.3v-5.5c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v10.74l-3.2-1.07c-.45-.15-.95.06-1.18.47l-.99 1.7 6.46 6.47c.5.5 1.18.79 1.89.79H16.5c1.1 0 2-.9 2-2v-4.5c0-.98-.67-1.8-1.58-1.95l1.92-1.93z"/></svg>') no-repeat center center;
             background-size: 13px; border: 2px solid #fff; border-radius: 50%; cursor: pointer; display: none; z-index: 10; transition: transform 0.12s ease;
+            -webkit-tap-highlight-color: transparent; accent-color: #fff; outline: none;
         }
         .confirm-btn:hover { background-color: #fff; transform: scale(1.1); }
         .confirm-btn:active { transform: scale(0.88); }
@@ -929,6 +936,7 @@
         <div class="brand-logo" style="--n:12">
             <span class="brand-njd"><span class="glint" style="--i:0">N</span><span class="glint" style="--i:1">J</span><span class="glint" style="--i:2">D</span></span>
             <span class="brand-code"><span class="glint" style="--i:3">C</span><span class="glint" style="--i:4">O</span><span class="glint" style="--i:5">D</span><span class="glint" style="--i:6">E</span><span class="brand-space"> </span><span class="glint" style="--i:7">N</span><span class="glint" style="--i:8">A</span><span class="glint" style="--i:9">M</span><span class="glint" style="--i:10">E</span><span class="glint" style="--i:11">S</span></span>
+            <div class="brand-ver">v3.0</div>
         </div>
         <h2 style="font-size: 22px; color: var(--muted); font-weight: 700;">أهلاً بك، أدخل بياناتك للبدء</h2>
         <div class="input-group">
