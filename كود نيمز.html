@@ -976,7 +976,7 @@
         <div class="brand-logo">
             <span class="brand-njd">NJD</span>
             <span class="brand-code">CODE NAMES</span>
-            <div class="brand-ver">v3.5</div>
+            <div class="brand-ver">v3.6</div>
         </div>
         <h2 class="welcome-glint">أهلاً بك، في كود نيمز نجد ضع افتار واسم للبدء.</h2>
         <div class="input-group">
@@ -2046,6 +2046,14 @@
                 return;
             }
 
+            // ===== تنظيف غرفة خالية قبل الانضمام =====
+            // إن لم يبقَ أحد في الغرفة فأي شات متبقٍّ هو من جلسة منتهية.
+            // ضروري لأن إغلاق المتصفح يحذف المقعد عبر onDisconnect من الخادم
+            // دون تشغيل أي كود عميل ينظّف الشات.
+            if (pCount === 0 && !isSiteOwner) {
+                GLOBAL_CHAT_REF.remove().catch(() => {});
+            }
+
             const newPlayerRef = PLAYERS_REF.push();
             myPlayerId = newPlayerRef.key;
             const playerData = { name: currentPlayer.name, avatar: currentPlayer.avatar, isOwner: false, currentRoleId: null };
@@ -2083,6 +2091,18 @@
                     isJoiningRoom = false;
                 });
             }).catch(err => { isJoiningRoom = false; showAlert('خطأ في الاتصال: ' + err.message); });
+        }
+
+        // ينظّف الغرفة إن لم يبقَ فيها أحد. يُستدعى من كل مسارات المغادرة.
+        // اللقطات مُمرَّرة لأن المتغيّرات العامة تُصفَّر أثناء الخروج.
+        function purgeRoomIfEmpty(gameRefSnap, chatRefSnap) {
+            if (!gameRefSnap) return;
+            gameRefSnap.child('players').once('value', (s) => {
+                if (Object.keys(s.val() || {}).length === 0) {
+                    gameRefSnap.remove().catch(() => {});
+                    if (chatRefSnap) chatRefSnap.remove().catch(() => {});
+                }
+            });
         }
 
         function exitRoomFromKick(reason) {
@@ -2165,14 +2185,7 @@
             }
 
             // إذا كنت آخر من يغادر، نظّف الغرفة والشات العام بالكامل
-            if (gameRefSnapshot) {
-                gameRefSnapshot.child('players').once('value', (s) => {
-                    if (Object.keys(s.val() || {}).length === 0) {
-                        gameRefSnapshot.remove().catch(() => {});
-                        if (chatRefSnapshot) chatRefSnapshot.remove().catch(() => {});
-                    }
-                });
-            }
+            purgeRoomIfEmpty(gameRefSnapshot, chatRefSnapshot);
 
             exitRoomFromKick(wasInGame ? 'خرجت من اللعبة، تم إلغاؤها.' : null);
         }
