@@ -376,7 +376,7 @@
         .brand-logo { --dur: 2s; }
 
         /* اللمعة تُطبّق على الكلمة كاملة لا على كل حرف */
-        .brand-njd, .brand-code, .brand-njd-mini, .brand-mini-code {
+        .brand-njd, .brand-code, .brand-njd-mini, .brand-mini-code, .welcome-glint {
             color: var(--silver-dim);
             background-image: linear-gradient(135deg,
                 var(--silver-dim) 34%,
@@ -397,6 +397,14 @@
             100% { background-position: 0% 0%; }
         }
 
+        /* النص الترحيبي يلمع بنفس حركة الشعار.
+           يحتاج --dur خاصاً به لأنه خارج .brand-logo، ويبقى اتجاهه RTL. */
+        .welcome-glint {
+            --dur: 2s;
+            font-size: 22px; font-weight: 700;
+            margin: 6px 0 14px;
+        }
+
         .brand-ver {
             font-size: 9px; letter-spacing: 2px; color: var(--silver-deep);
             margin-top: 3px; font-weight: 700; direction: ltr;
@@ -415,7 +423,7 @@
 
         /* احترام تفضيل تقليل الحركة */
         @media (prefers-reduced-motion: reduce) {
-            .brand-njd, .brand-code, .brand-njd-mini, .brand-mini-code {
+            .brand-njd, .brand-code, .brand-njd-mini, .brand-mini-code, .welcome-glint {
                 animation: none; background-image: none;
                 -webkit-text-fill-color: var(--silver); color: var(--silver);
             }
@@ -966,9 +974,9 @@
         <div class="brand-logo">
             <span class="brand-njd">NJD</span>
             <span class="brand-code">CODE NAMES</span>
-            <div class="brand-ver">v3.2</div>
+            <div class="brand-ver">v3.3</div>
         </div>
-        <h2 style="font-size: 22px; color: var(--muted); font-weight: 700;">أهلاً بك، في كود نيمز نجد ضع افتار واسم للبدء.</h2>
+        <h2 class="welcome-glint">أهلاً بك، في كود نيمز نجد ضع افتار واسم للبدء.</h2>
         <div class="input-group">
             <div class="avatar-upload-container" id="avatarContainer" onclick="document.getElementById('playerAvatar').click()">
                 <img id="avatarPreviewImg" src="" alt="افتار">
