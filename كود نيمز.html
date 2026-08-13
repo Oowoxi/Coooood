@@ -938,6 +938,15 @@
         }
 
         .word-card.revealed { animation: cardRevealEpic 0.55s cubic-bezier(0.34, 1.4, 0.64, 1) forwards; border-bottom-width: 2px; cursor: default; }
+
+        /* عند الكاتب: البطاقة التي أُجيب عنها تصير بيضاء ليعرف ما تبقّى بلمحة */
+        .cards-grid.writer-mode .word-card.revealed {
+            background: linear-gradient(145deg, #ffffff, #e8e8e8) !important;
+            border-color: #ffffff !important;
+        }
+        .cards-grid.writer-mode .word-card.revealed .word-text-box {
+            color: #111 !important; text-shadow: none !important;
+        }
         /* بطاقة كُشفت سابقاً: تبقى بشكلها النهائي بلا إعادة حركة */
         .word-card.revealed.no-reveal-anim {
             animation: none; transform: scale(var(--card-scale));
@@ -1363,7 +1372,7 @@
 
             <div class="clue-input-area" id="writerInputArea">
                 <button class="num-selector-btn" id="numSelectorBtn" onclick="toggleNumberPopup()">-</button>
-                <input type="text" id="clueWord" placeholder="اكتب التلميح..." maxlength="40" autocomplete="off">
+                <input type="text" id="clueWord" placeholder="اكتب التلميح... (كلمتان كحد أقصى)" maxlength="40" autocomplete="off" oninput="enforceClueWords(this)">
                 <button class="submit-clue-btn" onclick="submitClue()">تم</button>
 
                 <div class="numbers-popup" id="numbersPopup">
@@ -1419,6 +1428,8 @@
 
         let CURRENT_ROOM_ID = null;
         let GAME_REF, PLAYERS_REF, ROLES_REF, BOARD_REF, STATE_REF, CLUE_REF, WINNER_REF, COUNTDOWN_REF, CHATS_REF;
+        let DOUBTS_REF = null;              // game/doubts — علامات اللاعبين على البطاقات
+        let doubtsData = {};                // نسخة محلية: { index: { playerId: name } }
         // الشات العام يُحفظ خارج عقدة اللعبة حتى لا يُمسح عند انتهاء أو إلغاء اللعبة
         let GLOBAL_CHAT_REF = null;
 
@@ -1541,6 +1552,16 @@
         const MAX_NAME_LEN = 20;
         const MAX_MSG_LEN = 300;
         const MAX_CLUE_LEN = 40;
+        const MAX_CLUE_WORDS = 2;   // التلميح لا يتجاوز كلمتين
+
+        // يقصّ النص إلى أول كلمتين (مع إبقاء مسافة واحدة أثناء الكتابة)
+        function clampClueWords(text) {
+            const trailing = /\s$/.test(text);
+            const parts = String(text).split(/\s+/).filter(Boolean);
+            if (parts.length <= MAX_CLUE_WORDS)
+                return parts.join(' ') + (trailing && parts.length < MAX_CLUE_WORDS ? ' ' : '');
+            return parts.slice(0, MAX_CLUE_WORDS).join(' ');
+        }
         function clampText(str, max) { return String(str || '').replace(/\s+/g, ' ').trim().slice(0, max); }
 
         // كلمة سر الملاك لا تُخزَّن صراحةً؛ نخزن بصمتها فقط (SHA-256 مع ملح ثابت)
@@ -1700,7 +1721,7 @@
             const teamAr = turnAtFire.includes('red') ? 'الأحمر' : 'الأزرق';
             logRoundEvent('info', `انتهى وقت ${who} ${teamAr} — انتقل الدور`, turnAtFire.includes('red') ? 'red' : 'blue');
 
-            document.querySelectorAll('.doubt-names').forEach(el => el.innerText = '');
+            clearAllDoubts();
             setAllConfirms(false);
             currentTurn = nextTurn;
             STATE_REF.update({ currentTurn: nextTurn }).then(() => { updateTurnUI(); }).catch(() => {});
@@ -2535,6 +2556,7 @@
             CANCEL_REF = GAME_REF.child('cancel');
             SPECTATORS_REF = GAME_REF.child('spectators');
             PENDING_DC_REF = GAME_REF.child('pendingDisconnect');
+            DOUBTS_REF = GAME_REF.child('doubts');
             HEARTBEAT_REF = GAME_REF.child('heartbeats');
             // الشات العام على مستوى الغرفة (خارج /game) فلا يتأثر بحذف بيانات اللعبة
             GLOBAL_CHAT_REF = db.ref(`/rooms/${rId}/globalChat`);
@@ -2888,6 +2910,13 @@
                 const data = snap.val() || { words: [], colors: [], revealed: [], revealedBy: [] };
                 if (data.colors && data.colors.length === 25) actualBoardColors = data.colors;
                 renderBoard(data.words, data.colors, data.revealed, data.revealedBy);
+                renderDoubts();   // renderBoard يعيد بناء الشبكة فتُمسح الأسماء
+            });
+
+            // علامات اللاعبين على البطاقات: يراها الجميع لحظياً
+            DOUBTS_REF.on('value', (snap) => {
+                doubtsData = snap.val() || {};
+                renderDoubts();
             });
 
             STATE_REF.on('value', (snap) => {
@@ -3110,6 +3139,7 @@
             if (!keepPlayers) return gameRef.remove().catch(() => {});
             return gameRef.update({
                 board: null,
+                doubts: null,
                 state: null,
                 clue: null,
                 winner: null,
@@ -3136,6 +3166,7 @@
             const modeSnapshot = currentMode;
             gameRefSnapshot.update({
                 board: null,
+                doubts: null,
                 roles: null,
                 chats: null,
                 pendingDisconnect: null,
@@ -3742,7 +3773,7 @@
             f.title = 'NJD Chat';
             // 'storage-access' ضرورية: بدونها لا يملك الموقع المُضمَّن حتى حقّ
             // *طلب* الوصول إلى كوكيزه الأصلية عبر Storage Access API.
-            f.setAttribute('allow', 'storage-access; clipboard-read; clipboard-write; microphone; camera; autoplay');
+            f.setAttribute('allow', 'storage-access; clipboard-read; clipboard-write; autoplay');
             f.setAttribute('referrerpolicy', 'no-referrer-when-downgrade');
             f.setAttribute('src', NJD_CHAT_URL);   // آخر مرة يُلمس فيها src
             // أدرج الإطار قبل الغطاء والرسالة ليبقيا فوقه عند الحاجة
@@ -4565,9 +4596,21 @@
             document.getElementById('numbersPopup').style.display = 'none';
         }
 
+        // تمنع كتابة أكثر من كلمتين في مربع التلميح أثناء الكتابة نفسها
+        function enforceClueWords(input) {
+            const clamped = clampClueWords(input.value);
+            if (input.value !== clamped) {
+                const atEnd = input.selectionStart === input.value.length;
+                input.value = clamped;
+                if (atEnd) input.setSelectionRange(clamped.length, clamped.length);
+            }
+        }
+
         function submitClue() {
             if (isSiteOwner) return;
-            const word = clampText(document.getElementById('clueWord').value, MAX_CLUE_LEN); const num = document.getElementById('numSelectorBtn').innerText;
+            let word = clampText(document.getElementById('clueWord').value, MAX_CLUE_LEN);
+            word = clampClueWords(word).trim();   // حارس نهائي: كلمتان فقط
+            const num = document.getElementById('numSelectorBtn').innerText;
             if (word === '' || num === '-') { showAlert('اكتب تلميح واختار رقم أولاً!'); return; }
 
             CLUE_REF.set({ word: word, num: num });
@@ -4593,6 +4636,7 @@
             if (!show) document.querySelectorAll('.word-card').forEach(c => c.classList.remove('has-confirm'));
         }
 
+        // وضع/إزالة اسمي على بطاقة — يُحفظ على الخادم ليراه كل اللاعبين
         function toggleDoubt(index) {
             if (isSiteOwner) return;
             if (!currentPlayer.currentRoleId || !currentPlayer.currentRoleId.includes('Guesser')) return;
@@ -4600,11 +4644,30 @@
             if (turn !== `${myTeam}Guesser`) return;
 
             const card = document.getElementById(`card-${index}`); if (card.classList.contains('revealed')) return;
-            const doubtContainer = document.getElementById(`doubt-${index}`);
-            let currentDoubts = doubtContainer.innerText ? doubtContainer.innerText.split('، ') : [];
-            const myName = currentPlayer.name || 'أنا';
-            if (currentDoubts.includes(myName)) { currentDoubts = currentDoubts.filter(n => n !== myName); } else { currentDoubts.push(myName); }
-            doubtContainer.innerText = currentDoubts.join('، ');
+            if (!DOUBTS_REF || !myPlayerId) return;
+
+            const mine = doubtsData[index] && doubtsData[index][myPlayerId];
+            if (mine) DOUBTS_REF.child(String(index)).child(myPlayerId).remove().catch(() => {});
+            else DOUBTS_REF.child(String(index)).child(myPlayerId).set(currentPlayer.name || 'لاعب').catch(() => {});
+        }
+
+        // مسح كل العلامات من الخادم (نهاية دور/جولة). الكتابة من جهاز واحد تكفي.
+        function clearAllDoubts() {
+            doubtsData = {};
+            document.querySelectorAll('.doubt-names').forEach(el => el.innerText = '');
+            if (DOUBTS_REF) DOUBTS_REF.remove().catch(() => {});
+        }
+
+        // رسم الأسماء المشتركة على كل البطاقات
+        function renderDoubts() {
+            for (let i = 0; i < 25; i++) {
+                const el = document.getElementById(`doubt-${i}`);
+                if (!el) continue;
+                const entry = doubtsData[i];
+                const names = entry ? Object.keys(entry).map(k => entry[k]).filter(Boolean) : [];
+                const txt = names.join('، ');
+                if (el.innerText !== txt) el.innerText = txt;
+            }
         }
 
         function confirmGuess(event, index) {
@@ -4655,7 +4718,9 @@
                     STATE_REF.update({ redWordsLeft: rL, blueWordsLeft: bL, winner: winningTeam, blackWordWinner: true });
                     WINNER_REF.set(winningTeam);
                 }
-                document.getElementById(`doubt-${index}`).innerText = ''; setConfirmVisible(card.querySelector('.confirm-btn'), false);
+                document.getElementById(`doubt-${index}`).innerText = '';
+                if (DOUBTS_REF) DOUBTS_REF.child(String(index)).remove().catch(() => {});
+                setConfirmVisible(card.querySelector('.confirm-btn'), false);
             });
         }
 
@@ -4673,7 +4738,7 @@
         }
 
         function endGuesserTurn() {
-            document.querySelectorAll('.doubt-names').forEach(el => el.innerText = '');
+            clearAllDoubts();
             setAllConfirms(false);
             const turn = currentTurn; let nextTurn = '';
             if (turn === 'redGuesser') nextTurn = 'blueWriter'; else if (turn === 'blueGuesser') nextTurn = 'redWriter';
