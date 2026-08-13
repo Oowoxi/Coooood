@@ -787,6 +787,159 @@
             max-width: min(74vw, 620px); text-align: center; word-break: keep-all; overflow-wrap: normal; line-height: 1.35; }
         .clue-popup-num { font-size: 28px; font-weight: 900; color: #111; background: #fff; border: 2px solid var(--silver-dim); border-radius: 8px; padding: 5px 15px; box-shadow: inset 0 2px 5px rgba(0,0,0,0.1);}
         
+        /* ═════════════════════════════════════════════════════════════
+           حزمة اللمسات الجمالية (الجولة 37)
+           المبدأ: كل شيء هنا خفيف — transform/opacity فقط (تُنفَّذ على
+           كرت الشاشة)، بلا مؤقتات JS دائمة، وبلا أي تغيير في المقاسات.
+           ═══════════════════════════════════════════════════════════ */
+
+        /* ── 1) احترام تفضيل تقليل الحركة (إتاحة + أجهزة ضعيفة) ── */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important; animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important; scroll-behavior: auto !important;
+            }
+        }
+
+        /* ── 2) شريط تمرير رشيق بلون الهوية ── */
+        * { scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent; }
+        ::-webkit-scrollbar { width: 9px; height: 9px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(var(--line-strong), var(--surface-4));
+            border-radius: 999px; border: 2px solid transparent; background-clip: padding-box;
+        }
+        ::-webkit-scrollbar-thumb:hover { background: linear-gradient(var(--silver-deep), var(--line-strong)); background-clip: padding-box; }
+
+        /* ── 3) تحديد النص والتركيز بلوحة الموقع ── */
+        ::selection { background: rgba(255,255,255,0.22); color: #fff; }
+        button:focus-visible, input:focus-visible, .room-card:focus-visible, .word-card:focus-visible {
+            outline: 2px solid var(--silver); outline-offset: 2px;
+        }
+
+        /* ── 4) شريط زمن الدور: تفريغ بصري تحت الشاشة ──
+           عنصر واحد بعرض 100% وارتفاع 3px، يتقلّص بـ transform فقط.
+           لا يعيد التخطيط إطلاقاً ولا يحرّك أي عنصر آخر. */
+        .turn-progress {
+            position: fixed; top: 0; left: 0; width: 100%; height: 3px;
+            z-index: 60; pointer-events: none; display: none;
+            background: rgba(255,255,255,0.05);
+        }
+        .turn-progress.tp-on { display: block; }
+        .turn-progress .tp-fill {
+            width: 100%; height: 100%; transform-origin: left center;
+            transform: scaleX(1); background: var(--silver-dim);
+            transition: transform 0.5s linear, background-color 0.4s ease;
+        }
+        .turn-progress.tp-red   .tp-fill { background: linear-gradient(90deg, var(--red-dark), var(--red-base)); }
+        .turn-progress.tp-blue  .tp-fill { background: linear-gradient(90deg, var(--blue-dark), var(--blue-base)); }
+        .turn-progress.tp-warn  .tp-fill { background: linear-gradient(90deg, #b38600, var(--pick-yellow)); }
+        .turn-progress.tp-danger .tp-fill {
+            background: linear-gradient(90deg, #7d1010, var(--danger));
+            animation: tpPulse 0.85s ease-in-out infinite;
+        }
+        @keyframes tpPulse { 0%,100% { opacity: 1; } 50% { opacity: 0.45; } }
+
+        /* ── 5) البطاقات: لمعة مرور خفيفة + ضغطة واقعية ── */
+        .word-card::after {
+            content: ''; position: absolute; inset: 0; border-radius: inherit;
+            background: linear-gradient(115deg, transparent 38%, rgba(255,255,255,0.16) 50%, transparent 62%);
+            background-size: 260% 100%; background-position: 160% 0;
+            opacity: 0; pointer-events: none; z-index: 4;
+            transition: opacity .18s ease;
+        }
+        .word-card:hover:not(.revealed)::after { opacity: 1; animation: cardSheen .62s ease-out; }
+        @keyframes cardSheen { from { background-position: 160% 0; } to { background-position: -60% 0; } }
+        .word-card:active:not(.revealed) { transform: translateY(-1px) scale(calc(var(--card-scale) * 0.985)); }
+
+        /* بطاقة تحمل علامة متوقّع: إطار خفيف يميّزها دون تغيير المقاس */
+        .word-card.has-doubt { box-shadow: inset 0 0 0 2px rgba(255,255,255,0.30); }
+
+        /* ── 6) دخول لوحة البطاقات: تتابع موجي لطيف (مرة واحدة) ── */
+        @keyframes cardDeal {
+            from { transform: scale(calc(var(--card-scale) * 0.92)) translateY(10px); opacity: 0; }
+            to   { transform: scale(var(--card-scale)); opacity: 1; }
+        }
+        .cards-grid.deal-in .word-card { animation: cardDeal .42s cubic-bezier(0.22,1,0.36,1) both; }
+        .cards-grid.deal-in .word-card:nth-child(5n+1) { animation-delay: .00s; }
+        .cards-grid.deal-in .word-card:nth-child(5n+2) { animation-delay: .04s; }
+        .cards-grid.deal-in .word-card:nth-child(5n+3) { animation-delay: .08s; }
+        .cards-grid.deal-in .word-card:nth-child(5n+4) { animation-delay: .12s; }
+        .cards-grid.deal-in .word-card:nth-child(5n+5) { animation-delay: .16s; }
+
+        /* ── 7) صندوق الفريق صاحب الدور: توهّج بلون الفريق ── */
+        .team-box.red-box.active-turn-box  { border-color: var(--red-base);  box-shadow: 0 0 18px rgba(224,34,34,0.45); }
+        .team-box.blue-box.active-turn-box { border-color: var(--blue-base); box-shadow: 0 0 18px rgba(18,115,204,0.45); }
+
+        /* ── 8) عدّاد النتيجة: نبضة عند التغيّر ── */
+        @keyframes scorePop { 0% { transform: scale(1); } 42% { transform: scale(1.34); } 100% { transform: scale(1); } }
+        .score-bump { animation: scorePop .45s cubic-bezier(0.34,1.5,0.64,1); }
+
+        /* ── 9) الأزرار: لمعة مرور رقيقة ── */
+        .enter-btn, .submit-clue-btn, .end-turn-btn, .howto-btn, .vid-skip, .mode-btn {
+            position: relative; overflow: hidden;
+        }
+        .enter-btn::after, .submit-clue-btn::after, .end-turn-btn::after,
+        .howto-btn::after, .vid-skip::after, .mode-btn::after {
+            content: ''; position: absolute; top: 0; left: 0; width: 45%; height: 100%;
+            background: linear-gradient(100deg, transparent, rgba(255,255,255,0.28), transparent);
+            transform: translateX(-160%) skewX(-18deg); pointer-events: none; opacity: 0;
+            will-change: transform;
+        }
+        .enter-btn:hover::after, .submit-clue-btn:hover::after, .end-turn-btn:hover::after,
+        .howto-btn:hover::after, .vid-skip:hover::after, .mode-btn:hover::after {
+            opacity: 1; animation: btnSweep .55s ease-out;
+        }
+        /* transform فقط: لا إعادة تدفّق، تُنفَّذ على كرت الشاشة */
+        @keyframes btnSweep {
+            from { transform: translateX(-160%) skewX(-18deg); }
+            to   { transform: translateX(320%)  skewX(-18deg); }
+        }
+
+        /* ── 10) بطاقات الغرف: ارتفاع أنعم ── */
+        .room-card { transition: transform .22s cubic-bezier(0.22,1,0.36,1), border-color .22s ease, box-shadow .22s ease; }
+
+        /* ── 11) رسالة الفوز: إشعاع خلفي هادئ ── */
+        .victory-message { position: relative; }
+        .victory-message::before {
+            content: ''; position: absolute; inset: -40% -18%; z-index: -1; border-radius: 50%;
+            background: radial-gradient(circle, rgba(255,255,255,0.13), transparent 68%);
+            animation: winGlow 2.6s ease-in-out infinite;
+        }
+        @keyframes winGlow { 0%,100% { transform: scale(0.94); opacity: .55; } 50% { transform: scale(1.06); opacity: 1; } }
+
+        /* ── 12) قصاصات الاحتفال عند الفوز (CSS خالص، تُحذف تلقائياً) ── */
+        .confetti-layer { position: fixed; inset: 0; z-index: 9997; pointer-events: none; overflow: hidden; }
+        .confetti-bit {
+            position: absolute; top: -14px; width: 8px; height: 14px; border-radius: 2px;
+            animation: confFall linear forwards; will-change: transform;
+        }
+        @keyframes confFall {
+            from { transform: translate3d(0,-20px,0) rotate(0deg); opacity: 1; }
+            to   { transform: translate3d(var(--dx,0px), 104vh, 0) rotate(var(--rot,540deg)); opacity: 0; }
+        }
+
+        /* ── 13) إشعار خفيف (توست) أسفل الشاشة ── */
+        .njd-toast {
+            position: fixed; bottom: 18px; left: 50%; z-index: 10090;
+            background: var(--surface-2); color: var(--text);
+            border: 1px solid var(--line-strong); border-radius: 12px;
+            padding: 10px 20px; font-family: 'Cairo', sans-serif; font-weight: 700; font-size: 14px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.7); pointer-events: none;
+            transform: translate(-50%, 20px); opacity: 0;
+            transition: transform .28s cubic-bezier(0.22,1,0.36,1), opacity .28s ease;
+            max-width: 88vw; text-align: center;
+        }
+        .njd-toast.toast-on { transform: translate(-50%, 0); opacity: 1; }
+
+        /* ── 14) حقول الإدخال: تركيز أوضح ── */
+        input[type="text"], input[type="password"] { transition: border-color .2s ease, box-shadow .2s ease; }
+        input[type="text"]:focus, input[type="password"]:focus { box-shadow: 0 0 0 3px rgba(255,255,255,0.10); }
+
+        /* ── 15) الأفتار في اللوبي: ارتفاع بسيط عند المرور ── */
+        .player-mini img, .player-card img { transition: transform .22s cubic-bezier(0.22,1,0.36,1); }
+        .player-card:hover img { transform: translateY(-2px) scale(1.04); }
+
         /* ===== مشغّل فيديو الشرح (داخل الموقع — لا يغادر اللاعب الصفحة) ===== */
         .vid-overlay {
             position: fixed; inset: 0; z-index: 10080; display: none;
@@ -1300,6 +1453,9 @@
         <div class="owner-mode-banner" id="ownerModeBanner">👑 أنت الآن في وضع المالك (مشاهد مخفي)</div>
     </div>
 
+    <!-- شريط زمن الدور: عنصر واحد يتقلّص بـ transform (بلا إعادة تخطيط) -->
+    <div class="turn-progress" id="turnProgress" aria-hidden="true"><div class="tp-fill" id="turnProgressFill"></div></div>
+
     <!-- مشغّل فيديو الشرح: يُعرض داخل الموقع نفسه، لا ينتقل اللاعب لأي رابط -->
     <div class="vid-overlay" id="vidOverlay" aria-hidden="true">
         <div class="vid-box">
@@ -1737,6 +1893,7 @@
             turnDeadline = 0;
             const el = document.getElementById('turnTimer');
             if (el) el.style.display = 'none';
+            hideTurnProgress();
         }
 
         function startTurnTimer() {
@@ -1764,6 +1921,7 @@
                 el.innerText = '⏱ ' + left;
                 if (left <= 10) el.classList.add('timer-danger'); else el.classList.remove('timer-danger');
             }
+            updateTurnProgress(left, TURN_SECONDS);   // شريط الزمن: نفس النبضة، بلا مؤقّت إضافي
             if (left <= 5 && left > 0) { if (left <= 2) SFX.tickLast(); else SFX.tick(); }
 
             if (left > 0) return;
@@ -3034,8 +3192,12 @@
 
                 redWordsLeft = data.redWordsLeft !== undefined ? data.redWordsLeft : 9;
                 blueWordsLeft = data.blueWordsLeft !== undefined ? data.blueWordsLeft : 8;
-                document.getElementById('redScore').innerText = redWordsLeft;
-                document.getElementById('blueScore').innerText = blueWordsLeft;
+                const rsEl = document.getElementById('redScore'), bsEl = document.getElementById('blueScore');
+                bumpScore(rsEl, lastRedScore, redWordsLeft);
+                bumpScore(bsEl, lastBlueScore, blueWordsLeft);
+                lastRedScore = redWordsLeft; lastBlueScore = blueWordsLeft;
+                rsEl.innerText = redWordsLeft;
+                bsEl.innerText = blueWordsLeft;
 
                 if (data.winner && !victoryShown) {
                     victoryShown = true; const isBlack = data.blackWordWinner || false; showVictory(data.winner, isBlack, data.bySurrender || false);
@@ -3457,7 +3619,7 @@
                     }
                     // أزل سجلّي وحدي؛ من بقي منقطعاً يظل في الانتظار بمهلته
                     clearReconnectFor(myKey, currentPlayer.name);
-                    showAlert('تم إعادة الاتصال بعد الانقطاع');
+                    showToast('تم إعادة الاتصال بعد الانقطاع');   // توست: لا يحجب اللوحة عند العودة
                 };
 
                 if (Object.keys(updates).length) ROLES_REF.update(updates).then(finish).catch(() => {});
@@ -3943,6 +4105,99 @@
         }
 
         let njdChatBooting = false;
+
+        // ═══════════ حزمة اللمسات الجمالية (الجولة 37) ═══════════
+        // كل ما يلي يعتمد transform/opacity فقط، وبلا أي مؤقّت دائم.
+
+        // ── إشعار خفيف: عنصر واحد يُعاد استعماله ──
+        let njdToastEl = null, njdToastTimer = null;
+        function showToast(msg, ms) {
+            try {
+                if (!njdToastEl) {
+                    njdToastEl = document.createElement('div');
+                    njdToastEl.className = 'njd-toast';
+                    document.body.appendChild(njdToastEl);
+                }
+                njdToastEl.innerText = msg;
+                void njdToastEl.offsetWidth;
+                njdToastEl.classList.add('toast-on');
+                if (njdToastTimer) clearTimeout(njdToastTimer);
+                njdToastTimer = setTimeout(() => {
+                    if (njdToastEl) njdToastEl.classList.remove('toast-on');
+                }, ms || 2200);
+            } catch (e) {}
+        }
+
+        // ── شريط زمن الدور ──
+        // يُحدَّث من tickTurnTimer الموجود أصلاً، فلا مؤقّت إضافي إطلاقاً.
+        function updateTurnProgress(left, total) {
+            const bar = document.getElementById('turnProgress');
+            const fill = document.getElementById('turnProgressFill');
+            if (!bar || !fill) return;
+            bar.classList.add('tp-on');
+            const ratio = Math.max(0, Math.min(1, left / (total || TURN_SECONDS)));
+            fill.style.transform = 'scaleX(' + ratio.toFixed(4) + ')';
+            bar.classList.remove('tp-red', 'tp-blue', 'tp-warn', 'tp-danger');
+            if (left <= 10)      bar.classList.add('tp-danger');
+            else if (left <= 25) bar.classList.add('tp-warn');
+            else if (currentTurn && currentTurn.indexOf('red') === 0)  bar.classList.add('tp-red');
+            else if (currentTurn && currentTurn.indexOf('blue') === 0) bar.classList.add('tp-blue');
+        }
+        function hideTurnProgress() {
+            const bar = document.getElementById('turnProgress');
+            const fill = document.getElementById('turnProgressFill');
+            if (bar) { bar.classList.remove('tp-on', 'tp-red', 'tp-blue', 'tp-warn', 'tp-danger'); }
+            if (fill) fill.style.transform = 'scaleX(1)';
+        }
+
+        // ── نبضة عدّاد النتيجة عند تغيّره فقط ──
+        let lastRedScore = null, lastBlueScore = null;
+        function bumpScore(el, oldVal, newVal) {
+            if (!el || oldVal === null || oldVal === newVal) return;
+            el.classList.remove('score-bump');
+            void el.offsetWidth;
+            el.classList.add('score-bump');
+        }
+
+        // ── قصاصات الاحتفال: تُبنى مرة وتُزال ذاتياً بعد انتهائها ──
+        function launchConfetti(team) {
+            try {
+                if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+                const layer = document.createElement('div');
+                layer.className = 'confetti-layer';
+                const main = team === 'red' ? '#e02222' : '#1273cc';
+                const palette = [main, '#ffffff', '#d0d0d0', '#f5c518'];
+                const N = 46;   // عدد صغير متعمّد: احتفال واضح بلا إثقال
+                let html = '';
+                for (let i = 0; i < N; i++) {
+                    const left = Math.random() * 100;
+                    const dx   = (Math.random() * 160 - 80).toFixed(0);
+                    const rot  = (Math.random() * 900 + 220).toFixed(0);
+                    const dur  = (Math.random() * 1.6 + 2.1).toFixed(2);
+                    const del  = (Math.random() * 0.9).toFixed(2);
+                    const col  = palette[i % palette.length];
+                    const w    = (Math.random() * 5 + 6).toFixed(0);
+                    html += '<i class="confetti-bit" style="left:' + left.toFixed(2) + '%;'
+                          + 'background:' + col + ';width:' + w + 'px;'
+                          + '--dx:' + dx + 'px;--rot:' + rot + 'deg;'
+                          + 'animation-duration:' + dur + 's;animation-delay:' + del + 's"></i>';
+                }
+                layer.innerHTML = html;
+                document.body.appendChild(layer);
+                setTimeout(() => { if (layer.parentNode) layer.parentNode.removeChild(layer); }, 4600);
+            } catch (e) {}
+        }
+
+        // ── تتابع توزيع البطاقات: مرة واحدة عند بناء لوحة جديدة ──
+        function playDealAnimation() {
+            const grid = document.getElementById('cardsGrid');
+            if (!grid) return;
+            if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+            grid.classList.remove('deal-in');
+            void grid.offsetWidth;
+            grid.classList.add('deal-in');
+            setTimeout(() => grid.classList.remove('deal-in'), 900);
+        }
 
         // ===== مشغّل فيديو الشرح =====
         // الملفات مستضافة في GitHub Releases (حتى 2 جيجا للملف، خارج شجرة المستودع).
@@ -4678,6 +4933,8 @@
                 lastBoardData = null;
                 grid.innerHTML = '<div style="color:var(--muted);font-size:24px;grid-column:1/6;grid-row:1/6;display:flex;align-items:center;justify-content:center;">جاري تجهيز اللوحة...</div>'; return;
             }
+            // لوحة جديدة تماماً (لا شيء مكشوف بعد) => تتابع توزيع لمرة واحدة
+            const freshDeal = !lastBoardData && !(revealed || []).some(Boolean);
             lastBoardData = { words, colors, revealed, revealedBy };
             // المالك يرى كل الألوان مثل الكاتب (مشاهدة كاملة لما يجري)
             // لكن أثناء دور متوقّعي فريقه يرى الكاتب لوحة بيضاء مثلهم
@@ -4710,6 +4967,7 @@
             }
             grid.innerHTML = html;
             if (isWriter) grid.classList.add('writer-mode'); else grid.classList.remove('writer-mode');
+            if (freshDeal) playDealAnimation();   // توزيع أنيق لمرة واحدة عند بداية الجولة
         }
 
         function showTurnBanner(roleType) {
@@ -4886,6 +5144,9 @@
                 const names = entry ? Object.keys(entry).map(k => entry[k]).filter(Boolean) : [];
                 const txt = names.join('، ');
                 if (el.innerText !== txt) el.innerText = txt;
+                // إطار داخلي خفيف يميّز البطاقة المعلَّمة (لا يغيّر المقاس)
+                const card = document.getElementById(`card-${i}`);
+                if (card) card.classList.toggle('has-doubt', names.length > 0 && !card.classList.contains('revealed'));
             }
         }
 
@@ -4981,6 +5242,7 @@
 
         function showVictory(winningTeam, isBlackWord = false, bySurrender = false) {
             SFX.win();
+            launchConfetti(winningTeam);   // احتفال قصير يزيل نفسه تلقائياً
             stopTurnTimer(); timerTurnRef = '';
             recordWin(winningTeam, bySurrender ? 'surrender' : (isBlackWord ? 'black' : 'normal'));
             const overlay = document.getElementById('victoryOverlay'); const text = document.getElementById('victoryText');
