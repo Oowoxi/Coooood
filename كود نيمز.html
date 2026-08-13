@@ -4779,12 +4779,13 @@
             if (isSiteOwner) return;
             if (!currentPlayer.currentRoleId || !currentPlayer.currentRoleId.includes('Guesser')) return;
             const turn = currentTurn; const myTeam = currentPlayer.currentRoleId.includes('red') ? 'red' : 'blue';
-            if (turn === `${myTeam}Guesser`) { clearAllDoubts(); endGuesserTurn(); }
+            if (turn === `${myTeam}Guesser`) { endGuesserTurn(); }   // المسح داخل endGuesserTurn
         }
 
         function endGuesserTurn() {
-            // ملاحظة: المسح لا يتم هنا. العلامات تبقى معروضة حتى يضغط
-            // المتوقّع «إنهاء» صراحةً (أو ينتهي الوقت)، كما طلب المستخدم.
+            // نهاية دور المتوقّع تمسح كل العلامات (زر «إنهاء»، إجابة خاطئة،
+            // إجابة محايدة). المسح على الخادم ليختفي عند الجميع في آن واحد.
+            clearAllDoubts();
             setAllConfirms(false);
             const turn = currentTurn; let nextTurn = '';
             if (turn === 'redGuesser') nextTurn = 'blueWriter'; else if (turn === 'blueGuesser') nextTurn = 'redWriter';
