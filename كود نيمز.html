@@ -939,14 +939,6 @@
 
         .word-card.revealed { animation: cardRevealEpic 0.55s cubic-bezier(0.34, 1.4, 0.64, 1) forwards; border-bottom-width: 2px; cursor: default; }
 
-        /* عند الكاتب: البطاقة التي أُجيب عنها تصير بيضاء ليعرف ما تبقّى بلمحة */
-        .cards-grid.writer-mode .word-card.revealed {
-            background: linear-gradient(145deg, #ffffff, #e8e8e8) !important;
-            border-color: #ffffff !important;
-        }
-        .cards-grid.writer-mode .word-card.revealed .word-text-box {
-            color: #111 !important; text-shadow: none !important;
-        }
         /* بطاقة كُشفت سابقاً: تبقى بشكلها النهائي بلا إعادة حركة */
         .word-card.revealed.no-reveal-anim {
             animation: none; transform: scale(var(--card-scale));
@@ -956,6 +948,17 @@
         .word-card.revealed .guesser-avatar-overlay { animation: fadeInOverlay 0.8s ease forwards; }
 
         .cards-grid.writer-mode .word-card { cursor: default; }
+
+        /* تحويل خفيف بين لوحة الكاتب الملونة ولوحة المتوقع البيضاء */
+        @keyframes boardSwap {
+            0%   { transform: scale(1);     filter: brightness(1); }
+            45%  { transform: scale(0.985); filter: brightness(1.25); }
+            100% { transform: scale(1);     filter: brightness(1); }
+        }
+        .cards-grid.board-flip { animation: boardSwap 0.45s ease-in-out; }
+        .cards-grid .word-card { transition: background 0.35s ease, border-color 0.35s ease; }
+        /* أثناء وضع المتوقع يستطيع الكاتب المتابعة فقط، لا الضغط */
+        .cards-grid.peek-mode .word-card { cursor: default; }
         .cards-grid.writer-mode .word-card:hover { transform: scale(var(--card-scale)); z-index: auto; }
 
         .confirm-btn {
@@ -4454,17 +4457,58 @@
             else grid.classList.remove('writer-mode');
         }
 
+        // ═══ وضع «عيش تجربة المتوقع» للكاتب ═══
+        // أثناء دور متوقّعي فريقه تُخفى الألوان عن الكاتب فيرى لوحة بيضاء
+        // مثلهم تماماً، ويتابع أين وضعوا أسماءهم. وعند انتقال الدور للفريق
+        // الآخر تعود الألوان كما كانت. التحويل بتأثير خفيف (تلاشٍ + رجفة بسيطة).
+        let writerPeekActive = false;
+
+        // هل يجب على الكاتب أن يرى لوحة المتوقع الآن؟
+        function shouldWriterPeek() {
+            if (isSiteOwner) return false;
+            const rid = currentPlayer.currentRoleId;
+            if (!rid || !rid.includes('Writer')) return false;
+            const myTeam = rid.includes('red') ? 'red' : 'blue';
+            return currentTurn === `${myTeam}Guesser`;   // دور متوقّعي فريقي
+        }
+
+        // يطبّق الوضع ويشغّل التأثير عند كل تحوّل
+        function applyWriterPeek(force) {
+            const want = shouldWriterPeek();
+            if (!force && want === writerPeekActive) return;
+            writerPeekActive = want;
+            const grid = document.getElementById('cardsGrid');
+            if (!grid) return;
+            grid.classList.toggle('peek-mode', want);
+            // أعد الرسم بالألوان الجديدة ثم شغّل حركة التحويل
+            if (lastBoardData) {
+                renderBoard(lastBoardData.words, lastBoardData.colors,
+                            lastBoardData.revealed, lastBoardData.revealedBy);
+            }
+            if (!force) {
+                grid.classList.remove('board-flip');
+                void grid.offsetWidth;              // إعادة تدفّق لإعادة تشغيل الحركة
+                grid.classList.add('board-flip');
+            }
+        }
+
         // البطاقات التي سبق أن ظهرت حركتها، حتى لا تُعاد الحركة لكل اللوحة عند كل تحديث
         let animatedCards = new Set();
+        // آخر لوحة وردت من الخادم، لإعادة رسمها عند تبديل وضع الكاتب
+        let lastBoardData = null;
 
         function renderBoard(words, colors, revealed, revealedBy) {
             const grid = document.getElementById('cardsGrid');
             if (!words || words.length === 0) {
                 animatedCards.clear();
+                lastBoardData = null;
                 grid.innerHTML = '<div style="color:var(--muted);font-size:24px;grid-column:1/6;grid-row:1/6;display:flex;align-items:center;justify-content:center;">جاري تجهيز اللوحة...</div>'; return;
             }
+            lastBoardData = { words, colors, revealed, revealedBy };
             // المالك يرى كل الألوان مثل الكاتب (مشاهدة كاملة لما يجري)
-            const isWriter = isSiteOwner || (currentPlayer.currentRoleId && currentPlayer.currentRoleId.includes('Writer'));
+            // لكن أثناء دور متوقّعي فريقه يرى الكاتب لوحة بيضاء مثلهم
+            const isWriter = (isSiteOwner || (currentPlayer.currentRoleId && currentPlayer.currentRoleId.includes('Writer')))
+                             && !writerPeekActive;
             let html = '';
             for (let i = 0; i < 25; i++) {
                 const word = words[i] || '?'; const color = colors[i] || 'word-neutral';
@@ -4529,6 +4573,7 @@
                 return;
             }
             setAllConfirms(false);
+            applyWriterPeek();   // الكاتب: لوحة بيضاء أثناء دور متوقّعي فريقه
             document.getElementById('writerInputArea').style.display = 'none'; document.getElementById('guesserClueArea').style.display = 'none';
 
             const turn = currentTurn;
@@ -4718,8 +4763,7 @@
                     STATE_REF.update({ redWordsLeft: rL, blueWordsLeft: bL, winner: winningTeam, blackWordWinner: true });
                     WINNER_REF.set(winningTeam);
                 }
-                document.getElementById(`doubt-${index}`).innerText = '';
-                if (DOUBTS_REF) DOUBTS_REF.child(String(index)).remove().catch(() => {});
+                // العلامات تبقى كما هي؛ لا تُمسح إلا بزر «إنهاء» أو انتهاء الوقت
                 setConfirmVisible(card.querySelector('.confirm-btn'), false);
             });
         }
@@ -4730,15 +4774,17 @@
             return false;
         }
 
+        // زر «إنهاء»: هو وحده من يمسح العلامات يدوياً
         function endGuesserTurnManual() {
             if (isSiteOwner) return;
             if (!currentPlayer.currentRoleId || !currentPlayer.currentRoleId.includes('Guesser')) return;
             const turn = currentTurn; const myTeam = currentPlayer.currentRoleId.includes('red') ? 'red' : 'blue';
-            if (turn === `${myTeam}Guesser`) { endGuesserTurn(); }
+            if (turn === `${myTeam}Guesser`) { clearAllDoubts(); endGuesserTurn(); }
         }
 
         function endGuesserTurn() {
-            clearAllDoubts();
+            // ملاحظة: المسح لا يتم هنا. العلامات تبقى معروضة حتى يضغط
+            // المتوقّع «إنهاء» صراحةً (أو ينتهي الوقت)، كما طلب المستخدم.
             setAllConfirms(false);
             const turn = currentTurn; let nextTurn = '';
             if (turn === 'redGuesser') nextTurn = 'blueWriter'; else if (turn === 'blueGuesser') nextTurn = 'redWriter';
