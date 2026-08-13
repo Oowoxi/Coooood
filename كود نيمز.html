@@ -779,10 +779,12 @@
         .clue-popup-box {
             background: var(--neutral-base); border: 4px solid var(--silver); border-radius: 12px;
             padding: 15px 30px; display: flex; align-items: center; justify-content: center; gap: 15px;
+            max-width: 92vw; box-sizing: border-box;
             box-shadow: 0 10px 40px rgba(0,0,0,0.8);
             animation: popInClue 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
         }
-        .clue-popup-word { font-size: 32px; font-weight: 900; color: #111; font-family: 'Cairo', sans-serif;}
+        .clue-popup-word { font-size: 32px; font-weight: 900; color: #111; font-family: 'Cairo', sans-serif;
+            max-width: min(74vw, 620px); text-align: center; word-break: keep-all; overflow-wrap: normal; line-height: 1.35; }
         .clue-popup-num { font-size: 28px; font-weight: 900; color: #111; background: #fff; border: 2px solid var(--silver-dim); border-radius: 8px; padding: 5px 15px; box-shadow: inset 0 2px 5px rgba(0,0,0,0.1);}
         
         /* ===== تأثيرات حركة فقط (لا تغيّر شكل الصفحات ولا أحجامها) ===== */
@@ -1000,6 +1002,11 @@
         .display-clue-box, .display-num-box {
             background: rgba(2, 136, 209, 0.2); border: 2px solid var(--blue-base); border-radius: 12px;
             padding: 10px 25px; color: white; font-weight: 900; font-size: 20px;
+        }
+        /* تلميح من أربع كلمات: يبقى في سطر واحد ولا تنكسر الكلمة الواحدة */
+        .display-clue-box {
+            max-width: min(60vw, 460px); white-space: nowrap; overflow: hidden;
+            text-overflow: ellipsis; word-break: keep-all;
         }
 
         .end-turn-btn {
@@ -1375,7 +1382,7 @@
 
             <div class="clue-input-area" id="writerInputArea">
                 <button class="num-selector-btn" id="numSelectorBtn" onclick="toggleNumberPopup()">-</button>
-                <input type="text" id="clueWord" placeholder="اكتب التلميح... (كلمتان كحد أقصى)" maxlength="40" autocomplete="off" oninput="enforceClueWords(this)">
+                <input type="text" id="clueWord" placeholder="اكتب التلميح... (٤ كلمات كحد أقصى)" maxlength="60" autocomplete="off" oninput="enforceClueWords(this)">
                 <button class="submit-clue-btn" onclick="submitClue()">تم</button>
 
                 <div class="numbers-popup" id="numbersPopup">
@@ -1554,10 +1561,10 @@
         // حدود الإدخال
         const MAX_NAME_LEN = 20;
         const MAX_MSG_LEN = 300;
-        const MAX_CLUE_LEN = 40;
-        const MAX_CLUE_WORDS = 2;   // التلميح لا يتجاوز كلمتين
+        const MAX_CLUE_LEN = 60;   // يتّسع لأربع كلمات عربية
+        const MAX_CLUE_WORDS = 4;   // التلميح لا يتجاوز أربع كلمات
 
-        // يقصّ النص إلى أول كلمتين (مع إبقاء مسافة واحدة أثناء الكتابة)
+        // يقصّ النص إلى أول أربع كلمات (مع إبقاء مسافة واحدة أثناء الكتابة)
         function clampClueWords(text) {
             const trailing = /\s$/.test(text);
             const parts = String(text).split(/\s+/).filter(Boolean);
@@ -4641,7 +4648,7 @@
             document.getElementById('numbersPopup').style.display = 'none';
         }
 
-        // تمنع كتابة أكثر من كلمتين في مربع التلميح أثناء الكتابة نفسها
+        // تمنع كتابة أكثر من أربع كلمات في مربع التلميح أثناء الكتابة نفسها
         function enforceClueWords(input) {
             const clamped = clampClueWords(input.value);
             if (input.value !== clamped) {
@@ -4654,7 +4661,7 @@
         function submitClue() {
             if (isSiteOwner) return;
             let word = clampText(document.getElementById('clueWord').value, MAX_CLUE_LEN);
-            word = clampClueWords(word).trim();   // حارس نهائي: كلمتان فقط
+            word = clampClueWords(word).trim();   // حارس نهائي: أربع كلمات فقط
             const num = document.getElementById('numSelectorBtn').innerText;
             if (word === '' || num === '-') { showAlert('اكتب تلميح واختار رقم أولاً!'); return; }
 
