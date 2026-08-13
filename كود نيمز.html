@@ -2474,6 +2474,14 @@
             PENDING_DC_REF.on('value', (snap) => {
                 pendingDisconnectData = snap.val();
                 if (pendingDisconnectData && pendingDisconnectData.active) {
+                    // إن عاد مقعدي وأنا مسجَّل كمنقطع، أزل نفسي من الطابور فوراً
+                    if (myPlayerId && !isSiteOwner && gameState.players && gameState.players[myPlayerId]) {
+                        const pl = pendingDisconnectData.players;
+                        const meListed = pl ? (pl[myPlayerId] ||
+                            Object.keys(pl).some(k => pl[k] && pl[k].name === currentPlayer.name))
+                            : (pendingDisconnectData.name === currentPlayer.name);
+                        if (meListed) { tryResumeDisconnectedSeat(); }
+                    }
                     renderReconnectBar(pendingDisconnectData);
                     // أوقف مؤقت الدور فوراً: الجولة معلّقة بانتظار عودة اللاعب
                     stopTurnTimer();
@@ -2496,18 +2504,31 @@
 
                 if (myPlayerId && (!gameState.players || !gameState.players[myPlayerId])) {
                     // اختفى مقعدي: قد يكون طرداً حقيقياً، وقد يكون onDisconnect انطلق بالخطأ
-                    // أثناء تبديل التبويب/التطبيق. ما دمت متصلاً فعلياً نستعيد المقعد بدل الطرد.
-                    if (!isLeavingPage && !isLeavingRoom && !seatRecoveryTried && CURRENT_ROOM_ID && !isSiteOwner) {
-                        seatRecoveryTried = true;
-                        ensureMySeatAlive();
-                        // امنح الاستعادة فرصة قبل الحكم بالطرد
-                        pendingTimers.push(setTimeout(() => {
-                            if (!myPlayerId || !CURRENT_ROOM_ID) return;
-                            PLAYERS_REF.child(myPlayerId).once('value', (s2) => {
-                                if (!s2.exists() && myPlayerId && CURRENT_ROOM_ID) exitRoomFromKick();
-                                else seatRecoveryTried = false;
-                            });
-                        }, 1500));
+                    // أثناء تبديل التبويب/التطبيق أو بعد انقطاع شبكة قصير.
+                    // ما دمت متصلاً فعلياً نستعيد المقعد بدل الطرد — ونعيد المحاولة
+                    // في كل مرة (لا مرة واحدة)، لأن الانقطاع قد يتكرر في الجولة نفسها.
+                    if (!isLeavingPage && !isLeavingRoom && CURRENT_ROOM_ID && !isSiteOwner) {
+                        if (!seatRecoveryTried) {
+                            seatRecoveryTried = true;
+                            ensureMySeatAlive();
+                            // امنح الاستعادة فرصة قبل الحكم بالطرد
+                            pendingTimers.push(setTimeout(() => {
+                                seatRecoveryTried = false;      // اسمح بمحاولة لاحقة دائماً
+                                if (!myPlayerId || !CURRENT_ROOM_ID) return;
+                                PLAYERS_REF.child(myPlayerId).once('value', (s2) => {
+                                    if (!s2.exists() && myPlayerId && CURRENT_ROOM_ID) {
+                                        // محاولة أخيرة قبل الطرد: قد تكون الشبكة عادت للتوّ
+                                        ensureMySeatAlive();
+                                        pendingTimers.push(setTimeout(() => {
+                                            if (!myPlayerId || !CURRENT_ROOM_ID) return;
+                                            PLAYERS_REF.child(myPlayerId).once('value', (s3) => {
+                                                if (!s3.exists() && myPlayerId && CURRENT_ROOM_ID) exitRoomFromKick();
+                                            });
+                                        }, 2000));
+                                    }
+                                });
+                            }, 1500));
+                        }
                         return;
                     }
                     exitRoomFromKick();
@@ -2542,7 +2563,22 @@
                 for (const rId in gameState.roles) {
                     if (gameState.roles[rId] === myPlayerId) { currentPlayer.currentRoleId = rId; found = true; break; }
                 }
-                if (!found) { currentPlayer.currentRoleId = null; document.getElementById('leaveBtn').style.display = 'none'; }
+                if (!found) {
+                    // أثناء اللعب: لا تمسح دوري لمجرد أن الأدوار وصلت ناقصة للحظة
+                    // (انقطاع قصير أو تحديث جزئي). مسحُه هنا كان يجعل الضغط على
+                    // البطاقات مرفوضاً بعد العودة رغم أن الدور ما زال لي.
+                    const stillMine = currentPlayer.currentRoleId &&
+                        gameState.roles[currentPlayer.currentRoleId] === myPlayerId;
+                    const waiting = pendingDisconnectData && pendingDisconnectData.active;
+                    if (!gameStartedFlag && !stillMine && !waiting) {
+                        currentPlayer.currentRoleId = null;
+                        document.getElementById('leaveBtn').style.display = 'none';
+                    } else if (gameStartedFlag && currentPlayer.currentRoleId &&
+                               !gameState.roles[currentPlayer.currentRoleId] && ROLES_REF) {
+                        // مقعدي شاغر على الخادم وأنا ما زلت ألعب: أعد ربطه بي
+                        ROLES_REF.child(currentPlayer.currentRoleId).set(myPlayerId).catch(() => {});
+                    }
+                }
                 buildRolesUI(); populateGamePanels(); checkIfLobbyFull();
 
                 const leaveBtn = document.getElementById('leaveBtn');
@@ -2833,6 +2869,7 @@
             clearInterval(countdownInterval);
             countdownInterval = null;
             clearPendingTimers();
+            pendingDisconnectData = null;   // أفرغ الطابور قبل الإخفاء حتى لا يعيد tick رسمه
             hideReconnectBar();
             gameStartedFlag = false;
 
@@ -2971,21 +3008,40 @@
             PENDING_DC_REF.once('value', (snap) => {
                 const info = snap.val();
                 if (!info || !info.active) return;
-                if (Date.now() > (info.deadline || 0)) return;      // انتهت المهلة
-                if ((info.name || '') !== currentPlayer.name) return; // ليس نفس اللاعب
                 if (!myPlayerId || !ROLES_REF) return;
 
-                const updates = {};
-                (info.roles || []).forEach(rid => { updates[rid] = myPlayerId; });
-                if (!Object.keys(updates).length) return;
+                // ابحث عن سجلّي في الطابور: بالمعرّف أولاً ثم بالاسم (توافقاً مع البنية القديمة)
+                let mine = null, myKey = null;
+                if (info.players && typeof info.players === 'object') {
+                    if (info.players[myPlayerId]) { mine = info.players[myPlayerId]; myKey = myPlayerId; }
+                    else for (const k in info.players) {
+                        if (info.players[k] && info.players[k].name === currentPlayer.name) {
+                            mine = info.players[k]; myKey = k; break;
+                        }
+                    }
+                } else if ((info.name || '') === currentPlayer.name) {
+                    mine = { name: info.name, roles: info.roles || [], deadline: info.deadline };
+                    myKey = myPlayerId;
+                }
+                if (!mine) return;                                   // لست من المنقطعين
+                if (Date.now() > (mine.deadline || 0)) return;       // انتهت مهلتي
 
-                ROLES_REF.update(updates).then(() => {
-                    const firstRole = (info.roles || [])[0] || null;
-                    currentPlayer.currentRoleId = firstRole;
-                    if (firstRole) PLAYERS_REF.child(myPlayerId).update({ currentRoleId: firstRole }).catch(() => {});
-                    PENDING_DC_REF.remove().catch(() => {});
+                const updates = {};
+                (mine.roles || []).forEach(rid => { updates[rid] = myPlayerId; });
+
+                const finish = () => {
+                    const firstRole = (mine.roles || [])[0] || currentPlayer.currentRoleId || null;
+                    if (firstRole) {
+                        currentPlayer.currentRoleId = firstRole;
+                        PLAYERS_REF.child(myPlayerId).update({ currentRoleId: firstRole }).catch(() => {});
+                    }
+                    // أزل سجلّي وحدي؛ من بقي منقطعاً يظل في الانتظار بمهلته
+                    clearReconnectFor(myKey, currentPlayer.name);
                     showAlert('تم إعادة الاتصال بعد الانقطاع');
-                }).catch(() => {});
+                };
+
+                if (Object.keys(updates).length) ROLES_REF.update(updates).then(finish).catch(() => {});
+                else finish();
             });
         }
 
@@ -3013,24 +3069,63 @@
             if (bar) bar.style.display = 'none';
         }
 
+        // أسماء كل المنقطعين الحاليين (تدعم البنية القديمة ذات اللاعب الواحد)
+        function njdDisconnectedNames(info) {
+            if (!info) return [];
+            if (info.players && typeof info.players === 'object') {
+                const out = [];
+                for (const k in info.players) {
+                    const nm = info.players[k] && info.players[k].name;
+                    if (nm && out.indexOf(nm) === -1) out.push(nm);
+                }
+                if (out.length) return out;
+            }
+            return info.name ? [info.name] : [];
+        }
+
+        // الشريط لا معنى له إلا داخل شاشة اللعب
+        function njdInGameScreen() {
+            const gs = document.getElementById('gameScreen');
+            return !!gs && gs.style.display === 'flex';
+        }
+
         // عرض الشريط وتحديث العداد كل ثانية
         function renderReconnectBar(info) {
             const bar = document.getElementById('reconnectBar');
             if (!info || !info.active) { hideReconnectBar(); return; }
+            // بعد إلغاء الجولة يعود الجميع لشاشة الأدوار: لا يُعرض الشريط هناك
+            if (!njdInGameScreen() || gameCancelled || victoryShown) { hideReconnectBar(); return; }
 
-            document.getElementById('reconnectText').innerText =
-                `${info.name || 'أحد اللاعبين'} غادر — سيتم إلغاء الجولة إن لم يعد خلال`;
+            const names = njdDisconnectedNames(info);
+            const label = names.length > 1
+                ? `${names.join(' و')} غادروا — سيتم إلغاء الجولة إن لم يعودوا خلال`
+                : `${names[0] || 'أحد اللاعبين'} غادر — سيتم إلغاء الجولة إن لم يعد خلال`;
+            document.getElementById('reconnectText').innerText = label;
             bar.style.display = 'block';
 
             const tick = () => {
                 if (!pendingDisconnectData || !pendingDisconnectData.active) { hideReconnectBar(); return; }
+                // إن غادرنا شاشة اللعب لأي سبب (إلغاء/فوز) نُخفي الشريط فوراً
+                if (!njdInGameScreen() || gameCancelled || victoryShown) { hideReconnectBar(); return; }
+
+                // حدّث النص إن انقطع/عاد أحد أثناء العد
+                const nm = njdDisconnectedNames(pendingDisconnectData);
+                const lbl = nm.length > 1
+                    ? `${nm.join(' و')} غادروا — سيتم إلغاء الجولة إن لم يعودوا خلال`
+                    : `${nm[0] || 'أحد اللاعبين'} غادر — سيتم إلغاء الجولة إن لم يعد خلال`;
+                const tEl = document.getElementById('reconnectText');
+                if (tEl.innerText !== lbl) tEl.innerText = lbl;
+
                 const left = Math.max(0, Math.ceil((pendingDisconnectData.deadline - Date.now()) / 1000));
                 document.getElementById('reconnectCount').innerText = left;
                 if (left <= 0) {
                     hideReconnectBar();
                     // صاحب الغرفة فقط ينهي الجولة حتى لا تتكرر العملية
                     if (currentPlayer.isOwner && !isSiteOwner && !gameCancelled) {
+                        // امسح كل الطابور دفعة واحدة حتى لا ينطلق إلغاء ثانٍ
+                        // بسبب منقطع آخر ما زال مسجّلاً في القائمة
                         if (PENDING_DC_REF) PENDING_DC_REF.remove().catch(() => {});
+                        pendingDisconnectData = null;
                         cancelGame(CANCEL_MSG_DISCONNECT);
                     }
                 }
@@ -3040,18 +3135,71 @@
             reconnectInterval = setInterval(tick, 500);
         }
 
-        // بدء فترة الانتظار عند فقدان لاعب أثناء اللعب
+        // بدء/تحديث فترة الانتظار عند فقدان لاعب أثناء اللعب.
+        // نحتفظ بكل المنقطعين في خريطة players لا بمقعد واحد، حتى يظهر اسم
+        // كل من ينقطع ولو انقطع أكثر من لاعب في نفس الوقت.
         function beginReconnectGrace(missing) {
             if (!PENDING_DC_REF || !missing) return;
+            const key = missing.pid || ('n_' + String(missing.name || '').replace(/[.#$/\[\]]/g, '_'));
             PENDING_DC_REF.transaction(current => {
-                if (current && current.active) return;   // فترة انتظار جارية بالفعل
+                const now = Date.now();
+                const cur = (current && current.active) ? current : null;
+                const players = (cur && cur.players) ? Object.assign({}, cur.players) : {};
+
+                // توافق مع البنية القديمة (لاعب واحد بلا خريطة)
+                if (cur && !cur.players && cur.name) {
+                    const oldKey = 'n_' + String(cur.name).replace(/[.#$/\[\]]/g, '_');
+                    players[oldKey] = { name: cur.name, roles: cur.roles || [], deadline: cur.deadline || now };
+                }
+
+                if (players[key]) return;   // هذا اللاعب مُسجَّل بالفعل، لا تُمدّد مهلته
+
+                players[key] = {
+                    name: missing.name,
+                    roles: missing.roles || [],
+                    deadline: now + RECONNECT_SECONDS * 1000
+                };
+
+                // أقرب مهلة تنتهي هي المهلة الحاكمة للجولة
+                let earliest = Infinity, firstName = '', firstRoles = [];
+                for (const k in players) {
+                    const d = players[k].deadline || 0;
+                    if (d < earliest) { earliest = d; firstName = players[k].name; firstRoles = players[k].roles || []; }
+                }
                 return {
                     active: true,
-                    name: missing.name,
-                    roles: missing.roles,
-                    deadline: Date.now() + RECONNECT_SECONDS * 1000,
-                    ts: Date.now()
+                    players: players,
+                    name: firstName,          // للتوافق مع النسخ القديمة
+                    roles: firstRoles,
+                    deadline: earliest,
+                    ts: (cur && cur.ts) || now
                 };
+            }).catch(() => {});
+        }
+
+        // إزالة لاعب واحد من قائمة الانتظار عند عودته (دون إلغاء انتظار الآخرين)
+        function clearReconnectFor(pid, name) {
+            if (!PENDING_DC_REF) return;
+            const key = pid || ('n_' + String(name || '').replace(/[.#$/\[\]]/g, '_'));
+            PENDING_DC_REF.transaction(current => {
+                if (!current || !current.active) return current;
+                const players = Object.assign({}, current.players || {});
+                if (!current.players && current.name) {
+                    const oldKey = 'n_' + String(current.name).replace(/[.#$/\[\]]/g, '_');
+                    players[oldKey] = { name: current.name, roles: current.roles || [], deadline: current.deadline };
+                }
+                delete players[key];
+                // بالاسم أيضاً، احتياطاً لاختلاف المعرّف بين الجلستين
+                for (const k in players) if (players[k] && players[k].name === name) delete players[k];
+
+                if (!Object.keys(players).length) return null;   // لم يبقَ منقطع: أنهِ الانتظار
+
+                let earliest = Infinity, fn = '', fr = [];
+                for (const k in players) {
+                    const d = players[k].deadline || 0;
+                    if (d < earliest) { earliest = d; fn = players[k].name; fr = players[k].roles || []; }
+                }
+                return { active: true, players: players, name: fn, roles: fr, deadline: earliest, ts: current.ts };
             }).catch(() => {});
         }
 
@@ -3070,9 +3218,11 @@
             }
             const ids = Object.keys(byPlayer);
             if (!ids.length) return null;
-            const pid = ids[0];
-            const known = lastKnownPlayers[pid];
-            return { name: (known && known.name) || 'أحد اللاعبين', roles: byPlayer[pid] };
+            // نُعيد كل المفقودين، لا الأول فقط، حتى يُسجَّل كل منقطع باسمه
+            return ids.map(pid => {
+                const known = lastKnownPlayers[pid];
+                return { pid: pid, name: (known && known.name) || 'أحد اللاعبين', roles: byPlayer[pid] };
+            });
         }
 
         function checkPlayersIntegrity() {
@@ -3108,7 +3258,11 @@
 
                 // بدل إلغاء الجولة فوراً: امنح اللاعب المنقطع مهلة للعودة
                 const missing = findMissingSeat();
-                if (missing) { beginReconnectGrace(missing); return; }
+                if (missing && missing.length) {
+                    // سجّل كل منقطع على حدة ليظهر اسمه في الشريط
+                    missing.forEach(m => beginReconnectGrace(m));
+                    return;
+                }
                 if (currentPlayersCount < required) {
                     // نقص لاعب بلا دور معلّق (نادر) — امنح مهلة عامة أيضاً
                     beginReconnectGrace({ name: 'أحد اللاعبين', roles: [] });
