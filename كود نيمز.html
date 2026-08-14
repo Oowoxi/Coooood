@@ -483,6 +483,7 @@
         }
         .room-card:hover { transform: translateY(-5px); border-color: var(--silver-br); box-shadow: 0 5px 15px rgba(255, 255, 255, 0.3); }
         .room-card.full-room { border-color: var(--red-base); opacity: 0.7; }
+        .room-ttl { font-size: 11px; color: var(--muted); font-weight: 700; margin-top: 3px; }
         .room-title { color: var(--silver); font-weight: 900; font-size: 18px; margin-bottom: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;}
         .room-count { color: var(--silver-dim); font-weight: bold; background: var(--void); padding: 5px; border-radius: 8px; display: inline-block; border: 1px solid var(--line); }
 
@@ -2441,6 +2442,134 @@
             return chosen.slice(0, count);
         }
 
+        // ═══════════ بناء لوحة قابلة للربط (الجولة 38) ═══════════
+        // المشكلة السابقة: كانت الكلمات تُختار متوازنة، ثم تُوزَّع الألوان
+        // عشوائياً فوقها. فالكلمتان المترابطتان تقعان في فريقين مختلفين
+        // غالباً (78% من الروابط كانت تخدم الخصم!) فيصير الربط فخّاً.
+        //
+        // الحل: نبني اللوحة كـ«حُزم» — كل حزمة كلمات من موضوع واحد،
+        // وتُمنح لفريق واحد بالكامل. فيصبح الرابط الذي يراه الكاتب
+        // رابطاً آمناً لفريقه، لا طُعماً للخصم.
+        const TEAM_BUNDLES = [3, 2, 2];   // لكل فريق: ثلاثية + ثنائيتان
+        function shuffleArr(a) {
+            a = [...a];
+            for (let i = a.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                const t = a[i]; a[i] = a[j]; a[j] = t;
+            }
+            return a;
+        }
+
+        // يُرجع { words, colors } جاهزين ومتوافقين في الترتيب
+        function buildLinkableBoard(pool) {
+            buildWordMaps(massiveWordsPool);
+            const uniq = [...new Set(pool)];
+            const need = { 'word-red': 9, 'word-blue': 8, 'word-neutral': 7, 'word-black': 1 };
+
+            // كلمات كل موضوع مرتّبة بترتيبها الأصلي في القائمة.
+            // الترتيب مهم: الكلمات المتجاورة في القائمة أقرب معنى فعلاً،
+            // فبعض المواضيع واسعة (٨٥+ كلمة) وطرفاها لا يجمعهما رابط حقيقي.
+            const orderOf = {};
+            massiveWordsPool.forEach((w, i) => { if (orderOf[w] === undefined) orderOf[w] = i; });
+            const byTopic = {};
+            for (const w of uniq) {
+                const t = _wordTopicMap[w];
+                if (t === undefined) continue;
+                if (!byTopic[t]) byTopic[t] = [];
+                byTopic[t].push(w);
+            }
+            for (const t in byTopic) byTopic[t].sort((a, b) => (orderOf[a] || 0) - (orderOf[b] || 0));
+            const topics = shuffleArr(Object.keys(byTopic).filter(t => byTopic[t].length >= 3));
+            const BUNDLE_WINDOW = 12;   // نافذة الجوار داخل الموضوع
+
+            const words = [], colors = [], usedSyn = new Set(), used = new Set();
+            const usedTopics = new Set();
+            let ti = 0;
+
+            // حزمة من n كلمات من موضوع جديد، بلا ترادف
+            function takeBundle(n) {
+                while (ti < topics.length) {
+                    const t = topics[ti++];
+                    const all = byTopic[t];
+                    // نافذة متجاورة عشوائية: كلمات قريبة في القائمة = رابط أوضح
+                    const start = all.length > BUNDLE_WINDOW
+                        ? Math.floor(Math.random() * (all.length - BUNDLE_WINDOW + 1)) : 0;
+                    const cand = shuffleArr(all.slice(start, start + BUNDLE_WINDOW));
+                    const got = [];
+                    for (const w of cand) {
+                        if (used.has(w)) continue;
+                        const sy = _wordSynMap[w] || [];
+                        if (sy.some(k => usedSyn.has(k))) continue;
+                        got.push(w);
+                        if (got.length >= n) break;
+                    }
+                    if (got.length === n) {
+                        got.forEach(w => { used.add(w); (_wordSynMap[w] || []).forEach(k => usedSyn.add(k)); });
+                        usedTopics.add(String(t));
+                        return got;
+                    }
+                }
+                return null;
+            }
+
+            // 1) حُزم مترابطة لكل فريق (الموضوع لا يتكرر بين الفريقين)
+            const have = { 'word-red': 0, 'word-blue': 0, 'word-neutral': 0, 'word-black': 0 };
+            for (const team of ['word-red', 'word-blue']) {
+                for (const sz of TEAM_BUNDLES) {
+                    if (have[team] + sz > need[team]) continue;
+                    const b = takeBundle(sz);
+                    if (!b) break;
+                    b.forEach(w => { words.push(w); colors.push(team); have[team]++; });
+                }
+            }
+
+            // 2) بقية المقاعد: كلمات منفردة من مواضيع لم تُستعمل،
+            //    حتى لا تنشأ روابط خادعة تعبر بين الفرق
+            const singles = [];
+            for (const w of shuffleArr(uniq)) {
+                if (used.has(w)) continue;
+                const t = _wordTopicMap[w];
+                if (t !== undefined && usedTopics.has(String(t))) continue;
+                const sy = _wordSynMap[w] || [];
+                if (sy.some(k => usedSyn.has(k))) continue;
+                singles.push(w); used.add(w);
+                sy.forEach(k => usedSyn.add(k));
+                if (t !== undefined) usedTopics.add(String(t));
+                if (singles.length >= 40) break;
+            }
+            // احتياط: لو ضاقت الخيارات (كلمات مخصّصة قليلة) خفّف الشروط تدريجياً
+            if (singles.length < 25) {
+                for (const w of shuffleArr(uniq)) {
+                    if (used.has(w)) continue;
+                    const sy = _wordSynMap[w] || [];
+                    if (sy.some(k => usedSyn.has(k))) continue;
+                    singles.push(w); used.add(w); sy.forEach(k => usedSyn.add(k));
+                    if (singles.length >= 40) break;
+                }
+            }
+            if (singles.length < 25) {
+                for (const w of shuffleArr(uniq)) {
+                    if (used.has(w)) continue;
+                    singles.push(w); used.add(w);
+                    if (singles.length >= 40) break;
+                }
+            }
+
+            let si = 0;
+            for (const c of ['word-red', 'word-blue', 'word-neutral', 'word-black']) {
+                while (have[c] < need[c] && si < singles.length) {
+                    words.push(singles[si++]); colors.push(c); have[c]++;
+                }
+            }
+
+            // 3) خلط المواقع مع بقاء كل لون ملتصقاً بكلمته
+            const order = shuffleArr([...words.keys()]);
+            return {
+                words:  order.map(i => words[i]),
+                colors: order.map(i => colors[i])
+            };
+        }
+
         function initDefaultRooms() {
             ROOMS_REF.once('value', snap => {
                 if (!snap.exists()) {
@@ -2563,6 +2692,44 @@
             }
         }
 
+        // ═══════════ انتهاء صلاحية غرف اللاعبين (الجولة 38) ═══════════
+        // الغرف التي ينشئها اللاعبون تُحذف تلقائياً بعد 7 ساعات من إنشائها،
+        // فلا تتكدّس القائمة. الغرف الافتراضية (2v2/3v3/4v4) دائمة لأنها
+        // لا تحمل الحقل temporary.
+        const ROOM_TTL_MS = 7 * 60 * 60 * 1000;   // سبع ساعات
+
+        function isRoomExpired(room) {
+            if (!room || !room.temporary || !room.createdAt) return false;
+            return (Date.now() - room.createdAt) >= ROOM_TTL_MS;
+        }
+
+        // الوقت المتبقي بصيغة مقروءة (يُعرض على بطاقة الغرفة)
+        function roomTimeLeftLabel(room) {
+            if (!room || !room.temporary || !room.createdAt) return '';
+            const left = ROOM_TTL_MS - (Date.now() - room.createdAt);
+            if (left <= 0) return 'انتهت';
+            const h = Math.floor(left / 3600000);
+            const m = Math.floor((left % 3600000) / 60000);
+            if (h > 0) return `يتبقى ${h} س`;
+            return `يتبقى ${m} د`;
+        }
+
+        // كنس الغرف المنتهية. تُنفّذ من كل عميل، والحذف المتكرر غير ضارّ.
+        // نتجنّب حذف غرفة فيها لاعبون الآن حتى لا نقطع مباراة جارية.
+        let lastRoomSweep = 0;
+        function sweepExpiredRooms() {
+            if (Date.now() - lastRoomSweep < 60000) return;   // مرة كل دقيقة على الأكثر
+            lastRoomSweep = Date.now();
+            for (const rId in allRoomsData) {
+                const room = allRoomsData[rId];
+                if (!isRoomExpired(room)) continue;
+                const pCount = room.game && room.game.players ? Object.keys(room.game.players).length : 0;
+                if (pCount > 0) continue;              // مأهولة: نؤجّل حتى تفرغ
+                if (rId === CURRENT_ROOM_ID) continue; // أنا داخلها
+                ROOMS_REF.child(rId).remove().catch(() => {});
+            }
+        }
+
         // نوع الغرف المعروض حالياً (null = شاشة اختيار النوع)
         let selectedRoomMode = null;
 
@@ -2588,6 +2755,7 @@
         function renderRoomsList() {
             const container = document.getElementById('roomsGrid');
             if (!container) return;
+            sweepExpiredRooms();                    // احذف المنتهية قبل العرض
             container.innerHTML = '';
             if (!selectedRoomMode) return;          // ما زلنا في شاشة اختيار النوع
             let shown = 0;
@@ -2596,6 +2764,8 @@
                 // اعرض غرف النوع المختار فقط
                 const roomMode = room.mode || '2v2';
                 if (roomMode !== selectedRoomMode) continue;
+                // غرفة انتهت مهلتها: تختفي فوراً من القائمة ولو تأخّر حذفها
+                if (isRoomExpired(room)) continue;
                 shown++;
                 const pCount = room.game && room.game.players ? Object.keys(room.game.players).length : 0;
                 const isFull = pCount >= room.maxPlayers;
@@ -2605,10 +2775,13 @@
                 const deleteBtn = isSiteOwner
                     ? `<button class="delete-room-btn" onclick="deleteRoomCompletely(event, '${safeId}')">🗑 حذف</button>`
                     : '';
+                const ttlLabel = roomTimeLeftLabel(room);
+                const ttlHtml = ttlLabel ? `<div class="room-ttl">⏳ ${escapeHtml(ttlLabel)}</div>` : '';
                 container.innerHTML += `
                     <div class="room-card ${isFull && !isSiteOwner ? 'full-room' : ''}" onclick="attemptJoinRoom('${safeId}')">
                         <div class="room-title" title="${safeName}">${safeName}</div>
                         <div class="room-count">${pCount} / ${escapeHtml(room.maxPlayers)} ${isFull ? '(ممتلئ)' : ''}</div>
+                        ${ttlHtml}
                         ${deleteBtn}
                     </div>
                 `;
@@ -2751,7 +2924,9 @@
                 name: name,
                 maxPlayers: maxP,
                 mode: mode,
-                customWords: customWords
+                customWords: customWords,
+                createdAt: Date.now(),   // تنتهي صلاحيتها بعد ROOM_TTL_MS
+                temporary: true          // غرفة لاعب: قابلة للانتهاء (الافتراضية لا)
             }).then(() => {
                 isCreatingRoom = false;
                 closeCreateRoomModal();
@@ -2771,6 +2946,7 @@
             if (CURRENT_ROOM_ID === rId && (myPlayerId || mySpectatorId)) return; // أنا داخلها فعلاً
             const room = allRoomsData[rId];
             if (!room) { showAlert('هذه الغرفة لم تعد موجودة'); return; }
+            if (isRoomExpired(room)) { showAlert('انتهت مدة هذه الغرفة (٧ ساعات) وسيتم حذفها'); renderRoomsList(); return; }
             // المطرود ممنوع من العودة حتى تنقضي الدقيقة (المالك المشاهد مستثنى)
             if (!isSiteOwner) {
                 const banUntil = getLocalBan(rId);
@@ -4850,15 +5026,11 @@
                         let pool = customArr.length >= 25 ? customArr : [...customArr, ...massiveWordsPool];
                         pool = [...new Set(pool)];
                         
-                        // اختيار متوازن: لا مترادفات، وبحد أقصى 3 كلمات من كل
-                        // موضوع، حتى لا تُكشف اللوحة كلها بتلميحة واحدة
-                        const wordsList = pickBalancedWords(pool, 25);
-                        
-                        let colors = [];
-                        for (let i = 0; i < 9; i++) colors.push('word-red');
-                        for (let i = 0; i < 8; i++) colors.push('word-blue');
-                        for (let i = 0; i < 7; i++) colors.push('word-neutral');
-                        colors.push('word-black'); colors = colors.sort(() => Math.random() - 0.5);
+                        // لوحة قابلة للربط: الكلمات المترابطة تُمنح لفريق واحد
+                        // بالكامل، فلا يكون الرابط الذي يراه الكاتب فخّاً للخصم
+                        const built = buildLinkableBoard(pool);
+                        const wordsList = built.words;
+                        let colors = built.colors;
 
                         BOARD_REF.set({ words: wordsList, colors: colors, revealed: new Array(25).fill(false), revealedBy: new Array(25).fill('') }).then(() => {
                             actualBoardColors = colors; initGameState();
