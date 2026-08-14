@@ -786,6 +786,10 @@
         }
         .clue-popup-word { font-size: 32px; font-weight: 900; color: #111; font-family: 'Cairo', sans-serif;
             max-width: min(74vw, 620px); text-align: center; word-break: keep-all; overflow-wrap: normal; line-height: 1.35; }
+        /* تلميح طويل: نصغّر الخط حتى يظهر كاملاً داخل النافذة على الجوال */
+        .clue-popup-word.clue-len-m  { font-size: 26px; }
+        .clue-popup-word.clue-len-l  { font-size: 22px; }
+        .clue-popup-word.clue-len-xl { font-size: 18px; }
         .clue-popup-num { font-size: 28px; font-weight: 900; color: #111; background: #fff; border: 2px solid var(--silver-dim); border-radius: 8px; padding: 5px 15px; box-shadow: inset 0 2px 5px rgba(0,0,0,0.1);}
         
         /* ═════════════════════════════════════════════════════════════
@@ -1214,16 +1218,33 @@
 
         .guesser-clue-area {
             display: none; justify-content: center; gap: 15px; align-items: center; width: 100%; padding: 10px 0;
+            flex-wrap: wrap;   /* على الشاشات الضيقة ينزل الزر لسطر بدل خنق التلميح */
         }
         .display-clue-box, .display-num-box {
             background: rgba(2, 136, 209, 0.2); border: 2px solid var(--blue-base); border-radius: 12px;
             padding: 10px 25px; color: white; font-weight: 900; font-size: 20px;
         }
-        /* تلميح من أربع كلمات: يبقى في سطر واحد ولا تنكسر الكلمة الواحدة */
+        /* ═══ تلميح حتى أربع كلمات: يظهر كاملاً دائماً ═══
+           الخطأ السابق: white-space:nowrap + text-overflow:ellipsis كانا
+           يحصران التلميح في سطر واحد ثم يقصّانه إلى «...» فتضيع الكلمات.
+           الصواب: نسمح بالالتفاف *بين* الكلمات (عند المسافة) ونمنع كسر
+           الكلمة الواحدة في منتصفها، ولا نقصّ شيئاً أبداً. */
         .display-clue-box {
-            max-width: min(60vw, 460px); white-space: nowrap; overflow: hidden;
-            text-overflow: ellipsis; word-break: keep-all;
+            max-width: min(72vw, 620px);
+            white-space: normal;          /* يلتفّ بين الكلمات عند الحاجة */
+            word-break: keep-all;         /* لا تنكسر الكلمة الواحدة */
+            overflow-wrap: normal;
+            hyphens: none;
+            overflow: visible;            /* لا قصّ */
+            text-overflow: clip;
+            text-align: center;
+            line-height: 1.3;
         }
+        /* تصغير تدريجي للخط بحسب طول التلميح، فيبقى في سطر واحد غالباً
+           ويظهر كاملاً على الجوال أيضاً (يُضبط الصنف من JS) */
+        .display-clue-box.clue-len-m  { font-size: 17px; padding: 8px 18px; }
+        .display-clue-box.clue-len-l  { font-size: 15px; padding: 7px 14px; }
+        .display-clue-box.clue-len-xl { font-size: 13px; padding: 6px 12px; }
 
         .end-turn-btn {
             background: rgba(255, 255, 255, 0.16); border: 2px solid var(--silver-br); color: var(--silver-br);
@@ -2597,7 +2618,7 @@
             const stayInRoom = !!opts.stayInRoom;
 
             document.getElementById('chatMessagesArea').innerHTML = '';
-            document.getElementById('displayClueWord').innerText = 'تلميح';
+            setDisplayClue('');
             document.getElementById('displayClueNum').innerText = '-';
 
             // لا نمسح نص التنبيه إذا كان ظاهراً للاعب (رسالة إلغاء اللعبة مثلاً)
@@ -3410,7 +3431,7 @@
                 const data = snap.val() || { word: '', num: '-' };
                 const isNewClue = data.word !== '' && (data.word !== activeClue.word || data.num !== activeClue.num);
                 activeClue.word = data.word || ''; activeClue.num = data.num || '-';
-                document.getElementById('displayClueWord').innerText = activeClue.word || 'تلميح';
+                setDisplayClue(activeClue.word);
                 document.getElementById('displayClueNum').innerText = activeClue.num;
 
                 if (isNewClue && !initialClueLoad) {
@@ -3484,7 +3505,16 @@
 
         function showCluePopupAnimation(word, num) {
             const overlay = document.getElementById('cluePopupOverlay');
-            document.getElementById('cluePopupWord').innerText = word;
+            const wEl = document.getElementById('cluePopupWord');
+            const txt = (word && String(word).trim()) ? String(word).trim() : 'تلميح';
+            wEl.innerText = txt;
+            // نفس منطق التصغير: التلميح الطويل يظهر كاملاً ولا يفيض
+            const words = txt.split(/\s+/).filter(Boolean);
+            const longest = words.reduce((m, w) => Math.max(m, w.length), 0);
+            wEl.classList.remove('clue-len-m', 'clue-len-l', 'clue-len-xl');
+            if (txt.length >= 34 || longest >= 15)      wEl.classList.add('clue-len-xl');
+            else if (txt.length >= 24 || longest >= 12) wEl.classList.add('clue-len-l');
+            else if (txt.length >= 15 || longest >= 9)  wEl.classList.add('clue-len-m');
             document.getElementById('cluePopupNum').innerText = num;
             overlay.style.display = 'flex';
             
@@ -5157,6 +5187,24 @@
             trackTimeout(() => { overlay.style.display = 'none'; }, 4000);
         }
 
+        // ═══ عرض التلميح كاملاً مهما طال (الجولة 40) ═══
+        // نقطة واحدة لعرض التلميح، تضبط النص وحجم الخط معاً. قبلها كان
+        // النص يُكتب في 5 مواضع متفرّقة بلا أي ضبط للحجم.
+        function setDisplayClue(word) {
+            const el = document.getElementById('displayClueWord');
+            if (!el) return;
+            const txt = (word && String(word).trim()) ? String(word).trim() : 'تلميح';
+            el.innerText = txt;
+            // أطول كلمة مفردة تحدّد الحد الأدنى للحجم، والطول الكلي يحدّد الباقي
+            const words = txt.split(/\s+/).filter(Boolean);
+            const longest = words.reduce((m, w) => Math.max(m, w.length), 0);
+            const total = txt.length;
+            el.classList.remove('clue-len-m', 'clue-len-l', 'clue-len-xl');
+            if (total >= 34 || longest >= 15)      el.classList.add('clue-len-xl');
+            else if (total >= 24 || longest >= 12) el.classList.add('clue-len-l');
+            else if (total >= 15 || longest >= 9)  el.classList.add('clue-len-m');
+        }
+
         function updateTurnUI() {
             document.querySelectorAll('.team-box').forEach(b => b.classList.remove('active-turn-box'));
             if (isSiteOwner) {
@@ -5168,7 +5216,7 @@
                 const clueArea = document.getElementById('guesserClueArea');
                 if (t === 'redGuesser' || t === 'blueGuesser') {
                     clueArea.style.display = 'flex';
-                    document.getElementById('displayClueWord').innerText = activeClue.word || 'تلميح';
+                    setDisplayClue(activeClue.word);
                     document.getElementById('displayClueNum').innerText = activeClue.num || '-';
                     const endBtn = document.querySelector('.end-turn-btn');
                     if (endBtn) endBtn.style.display = 'none';
@@ -5201,7 +5249,7 @@
             } else if (turn === 'redGuesser') {
                 document.getElementById('redGuesserBox').classList.add('active-turn-box');
                 document.getElementById('guesserClueArea').style.display = 'flex';
-                document.getElementById('displayClueWord').innerText = activeClue.word || 'تلميح';
+                setDisplayClue(activeClue.word);
                 document.getElementById('displayClueNum').innerText = activeClue.num || '-';
                 if (currentPlayer.currentRoleId && currentPlayer.currentRoleId.includes('redGuesser')) {
                     setAllConfirms(true, true);
@@ -5226,7 +5274,7 @@
             } else if (turn === 'blueGuesser') {
                 document.getElementById('blueGuesserBox').classList.add('active-turn-box');
                 document.getElementById('guesserClueArea').style.display = 'flex';
-                document.getElementById('displayClueWord').innerText = activeClue.word || 'تلميح';
+                setDisplayClue(activeClue.word);
                 document.getElementById('displayClueNum').innerText = activeClue.num || '-';
                 if (currentPlayer.currentRoleId && currentPlayer.currentRoleId.includes('blueGuesser')) {
                     setAllConfirms(true, true);
