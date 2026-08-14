@@ -2606,7 +2606,11 @@
 
         ROOMS_REF.on('value', snap => {
             allRoomsData = snap.val() || {};
-            if (document.getElementById('roomsScreen').style.display === 'block') {
+            // الشاشة تُعرض دائماً بـ flex لا block، فكان هذا الشرط لا يتحقق أبداً
+            // وتبقى القائمة جامدة كما رُسمت أول مرة. نفحص «ليست مخفية» بدلاً منه
+            // حتى تتحدث أعداد اللاعبين ويتغيّر الترتيب لحظياً.
+            const rs = document.getElementById('roomsScreen');
+            if (rs && rs.style.display && rs.style.display !== 'none') {
                 renderRoomsList();
             }
         });
@@ -2779,7 +2783,10 @@
             sweepExpiredRooms();                    // احذف المنتهية قبل العرض
             container.innerHTML = '';
             if (!selectedRoomMode) return;          // ما زلنا في شاشة اختيار النوع
-            let shown = 0;
+            // ═══ الترتيب: الأكثر لاعبين أولاً (الجولة 42) ═══
+            // كان المرور يتم بترتيب ورود الغرف من قاعدة البيانات، فتظهر
+            // الغرف الفارغة قبل المأهولة. نجمعها أولاً ثم نرتّبها.
+            const visible = [];
             for (const rId in allRoomsData) {
                 const room = allRoomsData[rId];
                 // اعرض غرف النوع المختار فقط
@@ -2787,8 +2794,24 @@
                 if (roomMode !== selectedRoomMode) continue;
                 // غرفة انتهت مهلتها: تختفي فوراً من القائمة ولو تأخّر حذفها
                 if (isRoomExpired(room)) continue;
-                shown++;
                 const pCount = room.game && room.game.players ? Object.keys(room.game.players).length : 0;
+                visible.push({ rId, room, pCount });
+            }
+            // الأكثر لاعبين أولاً. وعند التساوي نرتّب بالاسم ثم بالمعرّف
+            // ليكون الترتيب ثابتاً: القائمة تُعاد بناؤها مع كل تحديث من
+            // الخادم، فلولا هذا التثبيت لقفزت البطاقات أمام اللاعب.
+            visible.sort((a, b) => {
+                if (b.pCount !== a.pCount) return b.pCount - a.pCount;
+                const an = String(a.room.name || ''), bn = String(b.room.name || '');
+                const byName = an.localeCompare(bn, 'ar');
+                if (byName !== 0) return byName;
+                return a.rId < b.rId ? -1 : a.rId > b.rId ? 1 : 0;
+            });
+
+            let shown = 0;
+            for (const entry of visible) {
+                const rId = entry.rId, room = entry.room, pCount = entry.pCount;
+                shown++;
                 const isFull = pCount >= room.maxPlayers;
                 // المالك يدخل حتى لو كانت ممتلئة، ويرى زر الحذف
                 const safeId = escapeAttr(rId);
