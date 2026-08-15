@@ -1,0 +1,50 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+
+    "rooms": {
+      ".read": true,
+      ".write": true,
+      "$roomId": {
+        "name":       { ".validate": "newData.isString() && newData.val().length <= 30" },
+        "maxPlayers": { ".validate": "newData.isNumber() && newData.val() >= 4 && newData.val() <= 8" },
+        "mode":       { ".validate": "newData.isString() && newData.val().matches(/^(2v2|3v3|4v4)$/)" },
+        "createdAt":  { ".validate": "newData.isNumber()" },
+        "temporary":  { ".validate": "newData.isBoolean()" },
+
+        "customWords": {
+          "$i": { ".validate": "newData.isString() && newData.val().length <= 20" }
+        },
+
+        "game": {
+          ".read": true,
+          ".write": true,
+          "players": {
+            "$pid": {
+              "name": { ".validate": "newData.isString() && newData.val().length <= 20" }
+            }
+          }
+        },
+
+        "globalChat": {
+          ".read": true,
+          ".write": true,
+          "$msgId": {
+            "text": { ".validate": "newData.isString() && newData.val().length <= 300" },
+            "name": { ".validate": "newData.isString() && newData.val().length <= 20" }
+          }
+        }
+      }
+    },
+
+    "winsHistory": {
+      ".read": true,
+      ".write": true,
+      "$winId": {
+        ".validate": "newData.hasChildren(['ts'])",
+        "ts": { ".validate": "newData.isNumber()" }
+      }
+    }
+  }
+}
