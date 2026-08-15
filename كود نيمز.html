@@ -480,10 +480,21 @@
             background: linear-gradient(160deg, var(--surface-2), var(--surface-1));
             border: 1px solid var(--line);
             border-radius: 15px; padding: 20px; width: 180px; text-align: center; cursor: pointer; transition: 0.2s;
+            position: relative;
         }
         .room-card:hover { transform: translateY(-5px); border-color: var(--silver-br); box-shadow: 0 5px 15px rgba(255, 255, 255, 0.3); }
         .room-card.full-room { border-color: var(--red-base); opacity: 0.7; }
         .room-ttl { font-size: 11px; color: var(--muted); font-weight: 700; margin-top: 3px; }
+        /* رقم الغرفة: مربع صغير في زاوية البطاقة */
+        .room-num {
+            position: absolute; top: 8px; inset-inline-start: 8px;
+            min-width: 22px; height: 22px; padding: 0 5px;
+            display: flex; align-items: center; justify-content: center;
+            background: var(--surface-3); color: var(--silver-br);
+            border: 1px solid var(--line-strong); border-radius: 6px;
+            font-size: 12px; font-weight: 900; line-height: 1;
+            pointer-events: none;
+        }
         .room-title { color: var(--silver); font-weight: 900; font-size: 18px; margin-bottom: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;}
         .room-count { color: var(--silver-dim); font-weight: bold; background: var(--void); padding: 5px; border-radius: 8px; display: inline-block; border: 1px solid var(--line); }
 
@@ -562,7 +573,7 @@
             display: flex; flex-direction: column;
             background: var(--surface-1);
             border: 2px solid var(--line-strong);
-            border-radius: 16px; overflow: hidden;
+            border-radius: 16px;   /* بلا overflow:hidden كي لا يُقصّ مقبض التحجيم الخارجي */
             box-shadow: 0 18px 48px rgba(0,0,0,0.72), 0 0 0 1px rgba(255,255,255,0.05);
             z-index: 10050;
             visibility: hidden; opacity: 0; pointer-events: none;
@@ -645,14 +656,19 @@
             cursor: pointer; transition: background .15s ease, transform .15s ease;
         }
         .njd-chat-sa-btn:hover { background: var(--line-strong); transform: translateY(-1px); }
+        /* المقبض: أصغر قليلاً، وخارج المربع لا داخله (لا يغطّي المحتوى) */
         .njd-chat-resize {
-            position: absolute; width: 18px; height: 18px; left: 2px; bottom: 2px;
+            position: absolute; width: 15px; height: 15px; left: -15px; bottom: -15px;
             cursor: nesw-resize; z-index: 5; touch-action: none;
             background:
               linear-gradient(45deg, transparent 46%, var(--line-strong) 46%, var(--line-strong) 56%, transparent 56%),
               linear-gradient(45deg, transparent 68%, var(--line-strong) 68%, var(--line-strong) 78%, transparent 78%);
         }
         .njd-chat-window.njd-chat-max .njd-chat-resize { display: none; }
+        /* القصّ انتقل من النافذة إلى جسمها، فيبقى الإطار مستديراً
+           ولا يُقصّ المقبض الموضوع خارج الحدود. */
+        .njd-chat-body { border-radius: 0 0 14px 14px; overflow: hidden; }
+        .njd-chat-header { border-radius: 14px 14px 0 0; }
         /* عند التصغير الشديد: ترويسة أنحف وعنوان أصغر حتى تبقى مساحة للموقع.
            يُضاف الصنف من njdFitFrame() حسب العرض الفعلي. */
         .njd-chat-window.njd-chat-tiny .njd-chat-header { padding: 4px 6px; gap: 4px; }
@@ -667,7 +683,7 @@
                 width: calc(100vw - 16px); height: 72dvh; border-radius: 14px;
             }
             /* مقبض أكبر ليسهل الإمساك به بالإصبع */
-            .njd-chat-resize { width: 30px; height: 30px; }
+            .njd-chat-resize { width: 26px; height: 26px; left: -26px; bottom: -26px; }
         }
         @media (prefers-reduced-motion: reduce) { .njd-chat-window { transition: none; } }
 
@@ -700,17 +716,56 @@
         }
         .random-teams-wrapper { margin: 5px 0; display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; flex-shrink: 0; }
 
+        /* حقل كلمة السر: إطار نظيف يتوهّج عند التركيز — CSS خالص، بلا أي كلفة */
+        .pass-field {
+            position: relative; display: flex; align-items: center;
+            width: 90%; margin: 4px auto 16px;
+            background: var(--surface-1); border: 2px solid var(--line-strong);
+            border-radius: 11px; transition: border-color .18s ease, box-shadow .18s ease;
+        }
+        .pass-field:focus-within {
+            border-color: var(--silver);
+            box-shadow: 0 0 0 3px rgba(208,208,208,0.13);
+        }
+        .pass-ic {
+            display: flex; align-items: center; justify-content: center;
+            width: 34px; height: 34px; color: var(--silver-dim); flex: none;
+        }
+        .pass-field:focus-within .pass-ic { color: var(--silver); }
+        .pass-field input {
+            flex: 1 1 auto; min-width: 0; background: transparent;
+            border: none; outline: none; color: var(--text);
+            font-family: 'Cairo', sans-serif; font-size: 16px; font-weight: 700;
+            padding: 11px 4px 11px 0; letter-spacing: 2px;
+        }
+        .pass-field input::placeholder { color: var(--muted); letter-spacing: 0; font-weight: 600; }
+
         /* ===== وضع المالك ===== */
         .owner-login-btn {
             margin-top: 14px; background: linear-gradient(145deg, var(--surface-3), var(--surface-2)); color: #fff;
-            border: 2px solid var(--silver); padding: 9px 22px; border-radius: 11px;
-            font-family: 'Cairo', sans-serif; font-weight: 900; font-size: 14px; cursor: pointer;
+            border: 2px solid var(--silver); padding: 6px 15px; border-radius: 9px;
+            font-family: 'Cairo', sans-serif; font-weight: 900; font-size: 12px; cursor: pointer;
         }
         .owner-login-btn:hover { transform: translateY(-2px); }
         .owner-mode-banner {
-            display: none; margin: 10px auto; max-width: 420px; padding: 7px 14px;
+            display: none; margin: 8px auto; max-width: 360px; padding: 5px 11px;
             background: linear-gradient(145deg, var(--surface-3), var(--surface-2)); color: #fff;
-            border: 2px solid var(--silver); border-radius: 11px; font-weight: 900; font-size: 13px;
+            border: 2px solid var(--silver); border-radius: 9px; font-weight: 900; font-size: 11px;
+        }
+        /* دخول وخروج الشريط: حركة خالصة (transform/opacity) بلا تغيير مقاس */
+        .owner-mode-banner.omb-in  { animation: ombIn  0.42s cubic-bezier(0.34,1.4,0.64,1) both; }
+        .owner-mode-banner.omb-out { animation: ombOut 0.34s ease-in both; }
+        @keyframes ombIn {
+            0%   { opacity: 0; transform: translateY(-14px) scale(0.94); }
+            60%  { opacity: 1; transform: translateY(2px)   scale(1.02); }
+            100% { opacity: 1; transform: translateY(0)     scale(1); }
+        }
+        @keyframes ombOut {
+            0%   { opacity: 1; transform: translateY(0)     scale(1); }
+            100% { opacity: 0; transform: translateY(-12px) scale(0.96); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .owner-mode-banner.omb-in, .owner-mode-banner.omb-out { animation: none !important; }
         }
         .delete-room-btn {
             margin-top: 9px; width: 100%; background: var(--danger-dark); color: #fff; border: 2px solid var(--danger-br);
@@ -1308,7 +1363,7 @@
             color: var(--pick-yellow) !important;
             font-weight: 700;
             /* صغير بحجم زر الشات فلا يزاحم أدوات اللعب */
-            padding: 4px 10px; font-size: 11px; border-radius: 8px;
+            padding: 3px 8px; font-size: 10px; border-radius: 7px;
         }
         .admin-btn:hover { filter: brightness(1.25); }
 
@@ -1694,9 +1749,12 @@
     <div class="custom-alert-overlay" id="ownerLoginModal">
         <div class="custom-alert-box">
             <h3 style="color:var(--silver); margin-top:0;">دخول الملاك</h3>
-            <input type="password" id="ownerPassInput" placeholder="اكتب كلمة السر..."
-                   style="width:90%; margin-bottom:15px; font-size:16px; padding:12px;"
-                   onkeypress="if(event.key === 'Enter') submitOwnerLogin()">
+            <div class="pass-field">
+                <span class="pass-ic" data-ic-pass="1"></span>
+                <input type="password" id="ownerPassInput" placeholder="اكتب كلمة السر..."
+                       autocomplete="off" spellcheck="false"
+                       onkeypress="if(event.key === 'Enter') submitOwnerLogin()">
+            </div>
             <button class="enter-btn" style="width:100%; max-width:320px; padding:11px; font-size:17px;" onclick="submitOwnerLogin()">دخول</button>
             <button onclick="closeOwnerLogin()" style="margin-top: 14px; background: var(--surface-4); border-radius: 10px; padding: 8px 25px; font-family:'Cairo'; font-weight:bold; cursor:pointer; color:white; border:none; font-size:15px;">إلغاء</button>
         </div>
@@ -1814,7 +1872,7 @@
                 <span id="privateChatNameGame">شات الفريق</span>
                 <span id="notif-private-game" class="chat-notif"></span>
             </button>
-            <button class="icon-btn" id="ownerExitGameBtn" style="display:none; background:var(--danger-dark); color:white; border-color:var(--danger-br);" onclick="exitRoom()">خروج</button>
+            <button class="icon-btn admin-btn" id="ownerExitGameBtn" style="display:none; background:var(--danger-dark) !important; color:white !important; border-color:var(--danger-br) !important;" onclick="exitRoom()">خروج</button>
             <span class="turn-timer" id="turnTimer" style="display:none;"><span class="btn-ic" data-ic="clock" data-sz="14"></span> 90</span>
             <button class="icon-btn log-btn" onclick="openRoundLog()" title="سجل الجولة"><span class="btn-ic" data-ic="scroll"></span> السجل <span class="log-badge" id="logCountBadge">0</span></button>
             <button class="icon-btn admin-btn" id="cancelRoundBtn" style="display:none;" onclick="openRoundsAdmin()" title="إلغاء دور ونقاطه">إلغاء دور</button>
@@ -2043,6 +2101,7 @@
             const parts = String(text).split(/\s+/).filter(Boolean);
             if (parts.length <= MAX_CLUE_WORDS)
                 return parts.join(' ') + (trailing && parts.length < MAX_CLUE_WORDS ? ' ' : '');
+            // أكثر من الحدّ: خذ الكلمتين الأوليين فقط، ولا تُلصق الزائد بهما
             return parts.slice(0, MAX_CLUE_WORDS).join(' ');
         }
         function clampText(str, max) { return String(str || '').replace(/\s+/g, ' ').trim().slice(0, max); }
@@ -2084,6 +2143,8 @@
 
         function openOwnerLogin() {
             document.getElementById('ownerPassInput').value = '';
+            const pic = document.querySelector('[data-ic-pass]');
+            if (pic && !pic.innerHTML) pic.innerHTML = ICON('lock', 17);
             document.getElementById('ownerLoginModal').style.display = 'flex';
         }
         function closeOwnerLogin() {
@@ -2111,7 +2172,10 @@
             ownerTries = 0;
             isSiteOwner = true;
             closeOwnerLogin();
-            document.getElementById('ownerModeBanner').style.display = 'block';
+            const omb = document.getElementById('ownerModeBanner');
+            omb.style.display = 'block';
+            omb.classList.remove('omb-out'); void omb.offsetWidth;
+            omb.classList.add('omb-in');                 // تأثير دخول
             showAlert('تم تفعيل وضع المالك، تدخل الغرف كمشاهد مخفي');
         }
         // ===== مؤقت الدور: يمنع تعطيل اللعبة من لاعب غائب =====
@@ -3224,6 +3288,12 @@
             document.getElementById('roomsTitle').innerText = 'اختر نوع الغرف';
         }
 
+        // رقم الغرفة الثابت، يُقرأ من معرّفها: room_3v3_2 رقمها 2
+        function roomNumberOf(rId) {
+            const m = String(rId || '').match(/_(\d+)$/);
+            return m ? m[1] : '•';
+        }
+
         function renderRoomsList() {
             const container = document.getElementById('roomsGrid');
             if (!container) return;
@@ -3270,6 +3340,7 @@
                 const ttlHtml = ttlLabel ? `<div class="room-ttl">${ICON('hour', 12)} ${escapeHtml(ttlLabel)}</div>` : '';
                 container.innerHTML += `
                     <div class="room-card ${isFull && !isSiteOwner ? 'full-room' : ''}" onclick="attemptJoinRoom('${safeId}')">
+                        <div class="room-num" aria-label="رقم الغرفة">${escapeHtml(roomNumberOf(rId))}</div>
                         <div class="room-title" title="${safeName}">${safeName}</div>
                         <div class="room-count">${pCount} / ${escapeHtml(room.maxPlayers)} ${isFull ? '(ممتلئ)' : ''}</div>
                         ${ttlHtml}
@@ -3617,7 +3688,7 @@
                     const players = snap.val() || {}; const keys = Object.keys(players);
                     if (keys.length === 1) {
                         // أنا أول لاعب: امسح أي بقايا من لعبة سابقة (لوحة/حالة/شات/أدوار)
-                        currentPlayer.isOwner = true; PLAYERS_REF.child(myPlayerId).update({ isOwner: true });
+                        claimOwnership();   // معاملة ذرّية: مدير واحد لا أكثر
                         // صارت شاشة الأدوار تظهر فوراً، فقد يختار اللاعب دوره قبل
                         // أن يصل هذا التنظيف فيمسحه معه. نلتقط الدور الآن، لأن
                         // مسح الأدوار يوقظ مستمعها فيصفّر currentRoleId قبل أن
@@ -3639,10 +3710,9 @@
                     } else {
                         let ownerExists = false;
                         for (const k in players) { if (players[k].isOwner === true && k !== myPlayerId) { ownerExists = true; break; } }
-                        if (!ownerExists && keys.length > 0) {
-                            PLAYERS_REF.child(keys[0]).update({ isOwner: true });
-                            if (keys[0] === myPlayerId) currentPlayer.isOwner = true;
-                        }
+                        // لا مدير؟ الترشيح ثابت عند الجميع (أصغر مفتاح) ويمرّ
+                        // بمعاملة ذرّية، فلا يتوّج لاعبان نفسيهما معاً.
+                        if (!ownerExists && keys.slice().sort()[0] === myPlayerId) claimOwnership();
                     }
                     attachGameListeners();
                     showRoomUINow();
@@ -3916,6 +3986,7 @@
                 seatRecoveryTried = false;
 
                 ensureRoomHasOwner();   // الغرفة يجب أن يكون لها صاحب دائماً
+                dedupeOwners();         // ولا يكون لها أكثر من صاحب أبداً
                 if (myPlayerId && gameState.players[myPlayerId]) {
                     currentPlayer.isOwner = gameState.players[myPlayerId].isOwner || false;
                     currentPlayer.name = gameState.players[myPlayerId].name || currentPlayer.name;
@@ -3980,7 +4051,11 @@
                 const fx = data.swapFx;
                 if (fx && fx.ts && fx.ts > lastSwapFxSeen) {
                     lastSwapFxSeen = fx.ts;
-                    playSwapAnimation(fx.idx || [], fx.grant || []);
+                    // أخِّر الانقلاب حتى يختفي شريط الإعلان، وإلا وقع خلفه
+                    // فلا يراه اللاعبون. bannerHideAt يضبطه showNoticeBanner.
+                    const wait = Math.max(0, (bannerHideAt || 0) - Date.now()) + 220;
+                    const ids = fx.idx || [], grants = fx.grant || [];
+                    trackTimeout(() => playSwapAnimation(ids, grants), wait);
                 }
             });
 
@@ -4155,7 +4230,21 @@
             document.getElementById('customAlertText').innerText = message;
             document.getElementById('customAlert').style.display = 'flex';
         }
-        function closeAlert() { document.getElementById('customAlert').style.display = 'none'; }
+        function closeAlert() {
+            document.getElementById('customAlert').style.display = 'none';
+            // شريط وضع المالك يغادر بتأثير خروج عند تأكيد الرسالة
+            const omb = document.getElementById('ownerModeBanner');
+            if (omb && omb.style.display === 'block' && omb.classList.contains('omb-in')) {
+                omb.classList.remove('omb-in');
+                omb.classList.add('omb-out');
+                trackTimeout(() => {
+                    if (omb.classList.contains('omb-out')) {
+                        omb.style.display = 'none';
+                        omb.classList.remove('omb-out');
+                    }
+                }, 340);
+            }
+        }
 
         function toggleFullScreen() {
             if (!document.fullscreenElement) { document.documentElement.requestFullscreen().catch(err => console.log(err)); } 
@@ -4351,6 +4440,41 @@
 
         // إذا خرج المدير أو انقطع، انقل التاج لأقدم لاعب متبقٍ.
         // بدون هذا تبقى الغرفة بلا صاحب: لا زر طرد، ولا من يلغي الجولة عند الانقطاع.
+        // يمنح التاج بمعاملة ذرّية على الخادم: يفشل تلقائياً إن سبقه أحد.
+        // بغيرها كان لاعبان يقرآن نسخة قديمة معاً فيتوّج كلٌّ نفسه = مديران.
+        function claimOwnership() {
+            if (isSiteOwner || !PLAYERS_REF || !myPlayerId) return;
+            const meId = myPlayerId, sess = roomSessionId;
+            PLAYERS_REF.transaction((players) => {
+                if (!players || !players[meId]) return players;   // لست موجوداً
+                for (const k in players) {
+                    if (players[k] && players[k].isOwner === true) {
+                        if (k === meId) return players;           // أنا المدير أصلاً
+                        return;                                   // يوجد مدير: تراجع
+                    }
+                }
+                players[meId].isOwner = true;
+                return players;
+            }).then((res) => {
+                if (sess !== roomSessionId) return;
+                const v = res && res.snapshot && res.snapshot.val();
+                currentPlayer.isOwner = !!(v && v[meId] && v[meId].isOwner === true);
+            }).catch(() => {});
+        }
+
+        // حارس دوري: لو ظهر أكثر من مدير (سباق نادر) أبقِ الأقدم وحده
+        function dedupeOwners() {
+            if (isSiteOwner || !PLAYERS_REF || !CURRENT_ROOM_ID) return;
+            const players = gameState.players || {};
+            const owners = Object.keys(players).filter(k => players[k] && players[k].isOwner === true);
+            if (owners.length <= 1) return;
+            const keep = owners.slice().sort()[0];
+            if (keep !== myPlayerId) return;   // صاحب الأولوية وحده ينظّف
+            const updates = {};
+            owners.forEach(k => { if (k !== keep) updates[k + '/isOwner'] = false; });
+            PLAYERS_REF.update(updates).catch(() => {});
+        }
+
         function ensureRoomHasOwner() {
             if (isSiteOwner || !PLAYERS_REF || !CURRENT_ROOM_ID || !myPlayerId) return;
             const players = gameState.players || {};
@@ -4360,8 +4484,7 @@
             // المرشح ثابت عند الجميع (أصغر مفتاح) فلا يتسابق أحد على التاج
             const heir = keys.slice().sort()[0];
             if (heir !== myPlayerId) return;   // كل عميل يرشّح نفسه فقط
-            PLAYERS_REF.child(heir).update({ isOwner: true }).catch(() => {});
-            currentPlayer.isOwner = true;
+            claimOwnership();                  // ذرّية: لا تعدّد للمديرين
         }
 
         // إعادة تسجيل مقعدي فوراً إذا حذفه onDisconnect بالخطأ وأنا ما زلت موجوداً
@@ -5450,6 +5573,7 @@
                 hour:   '<path d="M7 3.4h10M7 20.6h10M8 3.4c0 4.4 8 4.6 8 0M8 20.6c0-4.4 8-4.6 8 0" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
                 bulb:   '<path d="M12 3.4a5.8 5.8 0 00-3.4 10.5c.7.5 1.1 1.3 1.1 2.1h4.6c0-.8.4-1.6 1.1-2.1A5.8 5.8 0 0012 3.4z" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linejoin="round"/><path d="M10 18.6h4M10.6 20.8h2.8" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round"/>',
                 target: '<circle cx="12" cy="12" r="8.2" stroke="currentColor" stroke-width="1.6" fill="none"/><circle cx="12" cy="12" r="4.4" stroke="currentColor" stroke-width="1.6" fill="none"/><circle cx="12" cy="12" r="1.3" fill="currentColor"/>',
+                lock:   '<rect x="5" y="10.6" width="14" height="9.6" rx="2.2" stroke="currentColor" stroke-width="1.6" fill="none"/><path d="M8.4 10.6V8.2a3.6 3.6 0 017.2 0v2.4" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round"/><circle cx="12" cy="15.2" r="1.35" fill="currentColor"/>',
                 info:   '<circle cx="12" cy="12" r="8.2" stroke="currentColor" stroke-width="1.6" fill="none"/><path d="M12 10.8v5.6" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"/><circle cx="12" cy="7.9" r="1.15" fill="currentColor"/>'
             };
             return `<svg class="njd-ic" viewBox="0 0 24 24" width="${sz}" height="${sz}" aria-hidden="true" focusable="false">${P[name] || ''}</svg>`;
@@ -5600,13 +5724,13 @@
         function updateKickBtnVisibility() {
             const kb = document.getElementById('kickBtn');
             if (!kb) return;
-            const show = !isSiteOwner && currentPlayer.isOwner && !!CURRENT_ROOM_ID && !gameStartedFlag;
+            const show = (isSiteOwner || currentPlayer.isOwner) && !!CURRENT_ROOM_ID && !gameStartedFlag;
             kb.style.display = show ? 'inline-block' : 'none';
         }
 
         function openKickModal() {
-            if (isSiteOwner) { showAlert('أنت في وضع المالك: المشاهدة فقط'); return; }
-            if (!currentPlayer.isOwner) { showAlert('فقط مدير الغرفة يمكنه الطرد'); return; }
+            // مالك الموقع يطرد أيضاً، لكن طرده دائم حتى تفرغ الغرفة
+            if (!isSiteOwner && !currentPlayer.isOwner) { showAlert('فقط مدير الغرفة يمكنه الطرد'); return; }
             renderKickList();
             const km = document.getElementById('kickModal');
             km.style.display = 'flex';
@@ -5625,7 +5749,7 @@
                     <div class="kick-row">
                         <img src="${safeImgSrc(p.avatar)}">
                         <span class="kick-name">${escapeHtml(p.name)}</span>
-                        <button onclick="kickPlayer('${pid}')">طرد</button>
+                        ${isSiteOwner ? '' : `<button onclick="kickPlayer('${pid}')">طرد</button>`}
                         <button class="kick-perma" onclick="kickPlayerForever('${pid}')">طرد نهائي</button>
                     </div>`;
             }
@@ -5664,7 +5788,8 @@
         // يُسجَّل على مستوى الغرفة لا داخل /game، حتى لا يُمسح مع بيانات
         // اللعبة عند نهايتها. يسقط تلقائياً حين تفرغ الغرفة من كل اللاعبين.
         function kickPlayerForever(pid) {
-            if (isSiteOwner || !currentPlayer.isOwner || !pid || !GAME_REF) return;
+            // مالك الموقع ومدير الغرفة كلاهما يملك الطرد الدائم
+            if ((!isSiteOwner && !currentPlayer.isOwner) || !pid || !GAME_REF) return;
             if (pid === myPlayerId) return;
             const target = gameState.players[pid];
             if (!target) { closeKickModal(); return; }
@@ -5674,7 +5799,7 @@
             if (fp && PERMABANS_REF) {
                 PERMABANS_REF.child(fp).set({
                     name: target.name || '', ts: Date.now(),
-                    by: currentPlayer.name || ''
+                    by: (isSiteOwner ? 'الإدارة' : (currentPlayer.name || ''))
                 }).catch(() => {});
             }
             // احظره مؤقتاً أيضاً: لاعب قديم بلا بصمة يبقى ممنوعاً دقيقة على الأقل
@@ -5914,6 +6039,7 @@
         }
 
         // شريط إعلان عام بنفس أسلوب شريط الأدوار (الجولة 54)
+        let bannerHideAt = 0;   // متى يختفي الشريط (ليبدأ الانقلاب بعده)
         function showNoticeBanner(text, theme) {
             const overlay = document.getElementById('turnBannerOverlay');
             const banner = document.getElementById('turnBannerText');
@@ -5923,6 +6049,7 @@
             overlay.style.display = 'flex';
             banner.style.animation = 'none'; banner.offsetHeight;
             banner.style.animation = 'slideBanner 4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards';
+            bannerHideAt = Date.now() + 4000;
             trackTimeout(() => { overlay.style.display = 'none'; }, 4000);
         }
 
@@ -6077,14 +6204,26 @@
             document.getElementById('numbersPopup').style.display = 'none';
         }
 
-        // تمنع كتابة أكثر من كلمتين في مربع التلميح أثناء الكتابة نفسها
+        // تمنع كتابة أكثر من كلمتين في مربع التلميح أثناء الكتابة نفسها.
+        // بعد اكتمال الكلمتين لا يُقبل أي حرف إضافي إطلاقاً — لا في الآخر
+        // ولا في الوسط — إلا إذا مسح المستخدم. والمسافة الأخيرة تُحذف
+        // لأنها تعني بداية كلمة ثالثة.
+        let lastGoodClue = '';
         function enforceClueWords(input) {
-            const clamped = clampClueWords(input.value);
-            if (input.value !== clamped) {
-                const atEnd = input.selectionStart === input.value.length;
-                input.value = clamped;
-                if (atEnd) input.setSelectionRange(clamped.length, clamped.length);
+            const raw = String(input.value || '');
+            const parts = raw.split(/\s+/).filter(Boolean);
+            let val = raw;
+            if (parts.length > MAX_CLUE_WORDS) {
+                val = lastGoodClue;                  // رفض: أعِد آخر قيمة صالحة
+            } else if (parts.length === MAX_CLUE_WORDS && /\s$/.test(raw)) {
+                val = parts.join(' ');               // لا مسافة بعد آخر كلمة مسموحة
             }
+            if (val !== raw) {
+                const pos = Math.min(input.selectionStart, val.length);
+                input.value = val;
+                try { input.setSelectionRange(pos, pos); } catch (e) {}
+            }
+            lastGoodClue = input.value;
         }
 
         function submitClue() {
