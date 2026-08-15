@@ -2591,6 +2591,11 @@
             };
         }
 
+        // هل وصلت قائمة الغرف من الخادم بعد؟ قبل وصولها تكون allRoomsData فارغة
+        // وهذا لا يعني أن لا غرف، بل أن الرد لم يصل. (الجولة 43)
+        let roomsDataLoaded = false;
+        let defaultsWritten = false;
+
         function initDefaultRooms() {
             ROOMS_REF.once('value', snap => {
                 if (!snap.exists()) {
@@ -2598,6 +2603,7 @@
                     for(let i=1; i<=4; i++) defaults[`room_2v2_${i}`] = { name: `2v2`, maxPlayers: 4, mode: '2v2' };
                     for(let i=1; i<=3; i++) defaults[`room_3v3_${i}`] = { name: `3v3`, maxPlayers: 6, mode: '3v3' };
                     for(let i=1; i<=3; i++) defaults[`room_4v4_${i}`] = { name: `4v4`, maxPlayers: 8, mode: '4v4' };
+                    defaultsWritten = true;
                     ROOMS_REF.set(defaults);
                 }
             });
@@ -2606,6 +2612,15 @@
 
         ROOMS_REF.on('value', snap => {
             allRoomsData = snap.val() || {};
+            roomsDataLoaded = true;
+            // خلت القائمة كلياً (حُذفت كل الغرف): أعِد بناء الافتراضية حتى لا
+            // تبقى الشاشة فارغة إلى الأبد. العلم يمنع تكرار الكتابة أثناء نفس
+            // الفراغ، ويُصفَّر فور عودة الغرف ليعمل مجدداً لو خلت لاحقاً.
+            if (Object.keys(allRoomsData).length === 0) {
+                if (!defaultsWritten) { defaultsWritten = true; initDefaultRooms(); }
+            } else {
+                defaultsWritten = false;
+            }
             // الشاشة تُعرض دائماً بـ flex لا block، فكان هذا الشرط لا يتحقق أبداً
             // وتبقى القائمة جامدة كما رُسمت أول مرة. نفحص «ليست مخفية» بدلاً منه
             // حتى تتحدث أعداد اللاعبين ويتغيّر الترتيب لحظياً.
@@ -2831,7 +2846,12 @@
                 `;
             }
             if (!shown) {
-                container.innerHTML = '<p style="color:var(--muted); font-weight:700;">لا توجد غرف من هذا النوع حالياً</p>';
+                // فرّق بين «وصلت البيانات ولا توجد غرف» و«لم تصل البيانات بعد».
+                // كان الثاني يُعرض كالأول فيرى اللاعب «لا توجد غرف» ثم تظهر
+                // الغرف بعد ثانية، أو لا تظهر حتى يخرج ويعود.
+                container.innerHTML = roomsDataLoaded
+                    ? '<p style="color:var(--muted); font-weight:700;">لا توجد غرف من هذا النوع حالياً</p>'
+                    : '<p style="color:var(--muted); font-weight:700;">جارٍ تحميل الغرف...</p>';
             }
         }
 
@@ -2982,6 +3002,29 @@
             });
         }
 
+        // إظهار شاشة الغرفة دون انتظار الخادم. آمنة للاستدعاء أكثر من مرة.
+        // لا تُظهر شاشة الأدوار إذا كانت اللعبة شغالة وقد نقلَنا مستمع الحالة
+        // إلى شاشة اللعب، وإلا ظهرت الشاشتان فوق بعض.
+        function showRoomUINow() {
+            document.getElementById('roomsScreen').style.display = 'none';
+            if (document.getElementById('gameScreen').style.display !== 'flex') {
+                document.getElementById('rolesScreen').style.display = 'flex';
+            }
+        }
+
+        // فشل الدخول بعد أن أظهرنا الغرفة: أعِد اللاعب لقائمة الغرف بلا بقايا
+        function abortJoinUI(msg) {
+            isJoiningRoom = false;
+            detachRoomListeners();
+            stopHeartbeat();
+            CURRENT_ROOM_ID = null; myPlayerId = null; mySpectatorId = null;
+            document.getElementById('rolesScreen').style.display = 'none';
+            document.getElementById('gameScreen').style.display = 'none';
+            document.getElementById('roomsScreen').style.display = 'flex';
+            renderRoomsList();
+            showAlert(msg);
+        }
+
         function attemptJoinRoom(rId) {
             // ===== حارس التكرار =====
             // الضغط المتكرر كان ينشئ مقعداً جديداً في كل مرة (PLAYERS_REF.push)
@@ -3045,17 +3088,14 @@
                 currentPlayer.currentRoleId = null;
                 const specRef = SPECTATORS_REF.push();
                 mySpectatorId = specRef.key;
+                showRoomUINow();          // بلا انتظار الخادم (الجولة 43)
                 specRef.set({ name: currentPlayer.name, ts: Date.now() }).then(() => {
                     specRef.onDisconnect().remove();
                     attachGameListeners();
-                    document.getElementById('roomsScreen').style.display = 'none';
-                    // نفس القاعدة: إن كانت اللعبة شغالة فقد نقلَنا مستمع الحالة إلى شاشة اللعب
-                    if (document.getElementById('gameScreen').style.display !== 'flex') {
-                        document.getElementById('rolesScreen').style.display = 'flex';
-                    }
+                    showRoomUINow();
                     updateLobbyUI(); buildRolesUI(); initializeChats(); applyOwnerViewMode();
                     isJoiningRoom = false;
-                }).catch(err => { isJoiningRoom = false; showAlert('خطأ في الاتصال: ' + err.message); });
+                }).catch(err => abortJoinUI('خطأ في الاتصال: ' + err.message));
                 return;
             }
 
@@ -3070,6 +3110,12 @@
             const newPlayerRef = PLAYERS_REF.push();
             myPlayerId = newPlayerRef.key;
             const playerData = { name: currentPlayer.name, avatar: currentPlayer.avatar, isOwner: false, currentRoleId: null };
+
+            // ═══ إظهار الغرفة فوراً (الجولة 43) ═══
+            // كان التبديل ينتظر رحلتين متتاليتين للخادم (كتابة المقعد ثم قراءة
+            // اللاعبين) فيبقى اللاعب على قائمة الغرف قرابة ثانية ونصف بعد ضغطه.
+            // الشاشة لا تعتمد على نتيجة أي منهما، فنعرضها الآن ونكمل الباقي خلفها.
+            showRoomUINow();
 
             newPlayerRef.set(playerData).then(() => {
                 newPlayerRef.onDisconnect().remove();
@@ -3094,16 +3140,11 @@
                         }
                     }
                     attachGameListeners();
-                    document.getElementById('roomsScreen').style.display = 'none';
-                    // لا تُظهر شاشة الأدوار إذا كانت اللعبة شغالة وقد أدخلنا مستمع الحالة إلى شاشة اللعب،
-                    // وإلا ظهرت الشاشتان فوق بعض (حالة اللاعب العائد بعد انقطاع أثناء الجولة).
-                    if (document.getElementById('gameScreen').style.display !== 'flex') {
-                        document.getElementById('rolesScreen').style.display = 'flex';
-                    }
+                    showRoomUINow();
                     updateLobbyUI(); buildRolesUI(); initializeChats();
                     isJoiningRoom = false;
                 });
-            }).catch(err => { isJoiningRoom = false; showAlert('خطأ في الاتصال: ' + err.message); });
+            }).catch(err => abortJoinUI('خطأ في الاتصال: ' + err.message));
         }
 
         // ينظّف الغرفة إن لم يبقَ فيها أحد. يُستدعى من كل مسارات المغادرة.
