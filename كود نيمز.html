@@ -2687,6 +2687,36 @@
             return idx.get(a < b ? a + '|' + b : b + '|' + a) || 0;
         }
 
+        // يختار كلمة بديلة *متناسقة* مع محيطها، بنفس منطق مهندس اللوحة.
+        // mates  : كلمات نريد أن ترتبط بها البديلة (كلمات فريقها)
+        // rivals : كلمات يجب أن تبتعد عنها (الخصم والسوداء) منعاً للّبس
+        // linked : true لبطاقة ملوّنة (تريد روابط) | false لبطاقة بيضاء (تريد الحياد)
+        function pickHarmoniousWord(pool, mates, rivals, linked) {
+            if (!pool || !pool.length) return null;
+            const LIMIT = Math.min(pool.length, 300);   // عيّنة كافية والقائمة مخلوطة أصلاً
+            const scored = [];
+            for (let n = 0; n < LIMIT; n++) {
+                const cand = pool[n];
+                let link = 0, conf = 0;
+                for (let i = 0; i < mates.length; i++) {
+                    const v = simOf(cand, mates[i]);
+                    if (v > 0 && v < 99) link += Math.min(v, 3);
+                }
+                for (let i = 0; i < rivals.length; i++) {
+                    const v = simOf(cand, rivals[i]);
+                    if (v > 0 && v < 99) conf += Math.min(v, 3);
+                }
+                // بطاقة الفريق: كافئ الروابط وعاقب التشابه مع الخصم.
+                // البطاقة البيضاء: لا تلتصق بأحد حتى لا تصير فخاً مضلّلاً.
+                const score = linked ? (link * 4 - conf * 3)
+                                     : (-conf * 3 - Math.max(0, link - 1) * 2);
+                scored.push([score, cand]);
+            }
+            scored.sort((a, b) => b[0] - a[0]);
+            const top = scored.slice(0, 8);   // تنويع: اختر عشوائياً من بين الأفضل
+            return top[Math.floor(Math.random() * top.length)][1];
+        }
+
         // يبني لوحة مصمَّمة. يُرجع null لو تعذّر، فيعود النظام للطريقة القديمة.
         function buildDesignedBoard(pool) {
             const inPool = new Set(pool);
@@ -6203,8 +6233,40 @@
                 const onBoard = new Set(words);
                 // مخزون بديل من القائمة الكبيرة
                 const fresh = shuffleArr(massiveWordsPool.filter(w => !onBoard.has(w)));
-                let fi = 0;
-                const nextFresh = () => (fi < fresh.length ? fresh[fi++] : null);
+                // كلمات فريق معيّن على اللوحة الآن (مع تجاهل خانة يجري استبدالها)
+                const colWords = (color, excl) => {
+                    const a = [];
+                    for (let i = 0; i < 25; i++) if (i !== excl && colors[i] === color) a.push(words[i]);
+                    return a;
+                };
+                // كلمات يجب الابتعاد عنها: الخصم والسوداء
+                const foesOf = (color, excl) => {
+                    const a = [];
+                    for (let i = 0; i < 25; i++) {
+                        if (i === excl) continue;
+                        const c = colors[i];
+                        if (c !== color && c !== 'word-neutral') a.push(words[i]);
+                    }
+                    return a;
+                };
+                // كل الملوّنة (للبطاقة البيضاء: تبتعد عن الجميع)
+                const allColored = (excl) => {
+                    const a = [];
+                    for (let i = 0; i < 25; i++) {
+                        if (i === excl) continue;
+                        if (colors[i] !== 'word-neutral') a.push(words[i]);
+                    }
+                    return a;
+                };
+                // يسحب كلمة متناسقة ويشطبها من المخزون
+                const takeWord = (mates, rivals, linked) => {
+                    const nw = pickHarmoniousWord(fresh, mates, rivals, linked);
+                    if (!nw) return null;
+                    const at = fresh.indexOf(nw);
+                    if (at >= 0) fresh.splice(at, 1);
+                    onBoard.add(nw);
+                    return nw;
+                };
 
                 // البطاقات البيضاء (المحايدة) غير المكشوفة: منها يأخذ الفريق
                 // كلماته الجديدة، كما طلب المستخدم.
@@ -6230,14 +6292,11 @@
                     if (g.color === 'word-red')  redLeft++;
                     else if (g.color === 'word-blue') blueLeft++;
 
-                    // ١) الكلمة التي أُجيب عنها تُمسح وتُستبدل بكلمة جديدة
-                    const nw = nextFresh();
-                    if (nw) { words[idx] = nw; onBoard.add(nw); swapped.push(idx); }
-
-                    // ٢) البطاقة نفسها تصير بيضاء، ويُمنح الفريق بديلاً عنها
-                    //    من البطاقات البيضاء السابقة — فيبقى عدد كل لون ثابتاً.
+                    // ١) البطاقة تصير بيضاء، ويُمنح الفريق بديلاً عنها من
+                    //    البطاقات البيضاء السابقة — فيبقى عدد كل لون ثابتاً.
+                    //    (نضبط الألوان أولاً كي تُختار الكلمات على أساسها)
+                    let target = -1;
                     if (g.color === 'word-red' || g.color === 'word-blue') {
-                        let target = -1;
                         while (wi < whiteShuffled.length) {
                             const cand = whiteShuffled[wi++];
                             if (cand !== idx && colors[cand] === 'word-neutral') { target = cand; break; }
@@ -6245,10 +6304,22 @@
                         if (target >= 0) {
                             colors[idx] = 'word-neutral';   // مكان الإجابة صار أبيض
                             colors[target] = g.color;       // وبطاقة بيضاء صارت للفريق
-                            const nw2 = nextFresh();        // بكلمة جديدة أيضاً
-                            if (nw2) { words[target] = nw2; onBoard.add(nw2); }
-                            granted.push(target);
                         }
+                    }
+
+                    // ٢) الكلمة التي أُجيب عنها تُمسح وتُستبدل بكلمة *متناسقة*
+                    //    مع لون خانتها الجديد، لا بكلمة عشوائية.
+                    const cIdx = colors[idx];
+                    const nw = (cIdx === 'word-neutral')
+                        ? takeWord([], allColored(idx), false)
+                        : takeWord(colWords(cIdx, idx), foesOf(cIdx, idx), true);
+                    if (nw) { words[idx] = nw; swapped.push(idx); }
+
+                    // ٣) والبطاقة الممنوحة للفريق تأخذ كلمة مرتبطة بكلمات فريقها
+                    if (target >= 0) {
+                        const nw2 = takeWord(colWords(g.color, target), foesOf(g.color, target), true);
+                        if (nw2) words[target] = nw2;
+                        granted.push(target);
                     }
                 }
 
