@@ -1224,7 +1224,7 @@
             background: rgba(2, 136, 209, 0.2); border: 2px solid var(--blue-base); border-radius: 12px;
             padding: 10px 25px; color: white; font-weight: 900; font-size: 20px;
         }
-        /* ═══ تلميح حتى أربع كلمات: يظهر كاملاً دائماً ═══
+        /* ═══ تلميح حتى كلمتين: يظهر كاملاً دائماً ═══
            الخطأ السابق: white-space:nowrap + text-overflow:ellipsis كانا
            يحصران التلميح في سطر واحد ثم يقصّانه إلى «...» فتضيع الكلمات.
            الصواب: نسمح بالالتفاف *بين* الكلمات (عند المسافة) ونمنع كسر
@@ -1388,6 +1388,53 @@
         .turn-banner.banner-notice {
             background: linear-gradient(90deg, rgba(245,197,24,.92), rgba(180,140,10,.92));
             color: #1a1400;
+        }
+
+
+        /* ═══════════ الجولة 55: تأثير تبديل الكلمات ═══════════ */
+        /* حركة خالصة: transform / opacity / filter — لا أبعاد ولا تخطيط */
+        .word-card.swap-out {
+            animation: swapOut 0.85s cubic-bezier(0.45, 0, 0.2, 1) both;
+            z-index: 3;
+        }
+        @keyframes swapOut {
+            0%   { transform: rotateY(0deg)   scale(1);    opacity: 1;   filter: blur(0); }
+            35%  { transform: rotateY(78deg)  scale(0.92); opacity: 0.15; filter: blur(2px) brightness(1.6); }
+            50%  { transform: rotateY(90deg)  scale(0.9);  opacity: 0;   filter: blur(3px) brightness(2); }
+            65%  { transform: rotateY(102deg) scale(0.92); opacity: 0.2; filter: blur(2px) brightness(1.6); }
+            100% { transform: rotateY(180deg) scale(1);    opacity: 1;   filter: blur(0); }
+        }
+        /* البطاقة تعود مقروءة: نلغي الانعكاس عن النص والصور */
+        .word-card.swap-out .word-text-box,
+        .word-card.swap-out .doubt-names,
+        .word-card.swap-out .wrong-tag,
+        .word-card.swap-out .guesser-avatar-overlay {
+            animation: swapText 0.85s cubic-bezier(0.45, 0, 0.2, 1) both;
+        }
+        @keyframes swapText {
+            0%, 49%   { transform: rotateY(0deg); opacity: 1; }
+            50%, 100% { transform: rotateY(180deg); opacity: 1; }
+        }
+
+        /* بطاقة بيضاء مُنحت للفريق: ومضة ترحيب */
+        .word-card.grant-in {
+            animation: grantIn 0.9s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+            z-index: 3;
+        }
+        @keyframes grantIn {
+            0%   { transform: scale(1)    translateY(0);    filter: brightness(1); }
+            25%  { transform: scale(0.94) translateY(3px);  filter: brightness(0.7); }
+            55%  { transform: scale(1.09) translateY(-5px); filter: brightness(1.7) saturate(1.4); }
+            75%  { transform: scale(0.98) translateY(1px);  filter: brightness(1.2); }
+            100% { transform: scale(1)    translateY(0);    filter: brightness(1); }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .word-card.swap-out, .word-card.grant-in,
+            .word-card.swap-out .word-text-box,
+            .word-card.swap-out .doubt-names,
+            .word-card.swap-out .wrong-tag,
+            .word-card.swap-out .guesser-avatar-overlay { animation: none !important; }
         }
 
     </style>
@@ -1768,7 +1815,7 @@
 
             <div class="clue-input-area" id="writerInputArea">
                 <button class="num-selector-btn" id="numSelectorBtn" onclick="toggleNumberPopup()">-</button>
-                <input type="text" id="clueWord" placeholder="اكتب التلميح... (٤ كلمات كحد أقصى)" maxlength="60" autocomplete="off" oninput="enforceClueWords(this)">
+                <input type="text" id="clueWord" placeholder="اكتب التلميح... (كلمتان كحد أقصى)" maxlength="40" autocomplete="off" oninput="enforceClueWords(this)">
                 <button class="submit-clue-btn" onclick="submitClue()">تم</button>
 
                 <div class="numbers-popup" id="numbersPopup">
@@ -1865,6 +1912,7 @@
         let lastCancelledRoundSeen = 0;   // آخر إلغاء عُرض لي (منعاً للتكرار)
         let currentRoundKey = null;       // مفتاح الدور الجاري في سجل الخادم
         let wrongGuesses = {};            // فهرس البطاقات التي كُشفت وكانت للخصم
+        let lastSwapFxSeen = 0;           // آخر تأثير تبديل شُغّل (منعاً للتكرار)
         let cancelMessageShown = false;
         let roomJoinedAt = 0;
         let roomSessionId = 0;
@@ -1956,10 +2004,10 @@
         // حدود الإدخال
         const MAX_NAME_LEN = 20;
         const MAX_MSG_LEN = 300;
-        const MAX_CLUE_LEN = 60;   // يتّسع لأربع كلمات عربية
-        const MAX_CLUE_WORDS = 4;   // التلميح لا يتجاوز أربع كلمات
+        const MAX_CLUE_LEN = 40;   // يتّسع لكلمتين عربيتين
+        const MAX_CLUE_WORDS = 2;   // التلميح لا يتجاوز كلمتين
 
-        // يقصّ النص إلى أول أربع كلمات (مع إبقاء مسافة واحدة أثناء الكتابة)
+        // يقصّ النص إلى أول كلمتين (مع إبقاء مسافة واحدة أثناء الكتابة)
         function clampClueWords(text) {
             const trailing = /\s$/.test(text);
             const parts = String(text).split(/\s+/).filter(Boolean);
@@ -3821,6 +3869,12 @@
                 if (data.colors && data.colors.length === 25) actualBoardColors = data.colors;
                 renderBoard(data.words, data.colors, data.revealed, data.revealedBy);
                 renderDoubts();   // renderBoard يعيد بناء الشبكة فتُمسح الأسماء
+                // تأثير تبديل الكلمات بعد إلغاء دور (الجولة 55)
+                const fx = data.swapFx;
+                if (fx && fx.ts && fx.ts > lastSwapFxSeen) {
+                    lastSwapFxSeen = fx.ts;
+                    playSwapAnimation(fx.idx || [], fx.grant || []);
+                }
             });
 
             // علامات اللاعبين على البطاقات: يراها الجميع لحظياً
@@ -4857,6 +4911,38 @@
         }
 
         // ── تتابع توزيع البطاقات: مرة واحدة عند بناء لوحة جديدة ──
+        // ═══ تأثير تبديل الكلمات بعد إلغاء دور (الجولة 55) ═══
+        // البطاقات التي أُجيب عنها تتلاشى بدوران خفيف ثم تعود بكلماتها
+        // الجديدة، والبطاقات التي مُنحت للفريق تومض بلونها الجديد.
+        // حركة خالصة: transform/opacity/filter فقط — بلا أي تغيير أبعاد.
+        function playSwapAnimation(idxList, grantList) {
+            const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            const all = [];
+            (idxList || []).forEach(i => all.push({ i: i, kind: 'swap' }));
+            (grantList || []).forEach(i => all.push({ i: i, kind: 'grant' }));
+            if (!all.length) return;
+            if (reduce) return;   // احترام تفضيل تقليل الحركة
+
+            all.forEach((it, k) => {
+                const card = document.getElementById('card-' + it.i);
+                if (!card) return;
+                // تتابع لطيف: كل بطاقة تبدأ بعد سابقتها بقليل
+                const delay = Math.min(k * 90, 700);
+                trackTimeout(() => {
+                    const c = document.getElementById('card-' + it.i);
+                    if (!c) return;
+                    c.classList.remove('swap-out', 'grant-in');
+                    void c.offsetWidth;                     // إعادة تشغيل الحركة
+                    c.classList.add(it.kind === 'swap' ? 'swap-out' : 'grant-in');
+                    trackTimeout(() => {
+                        const c2 = document.getElementById('card-' + it.i);
+                        if (c2) c2.classList.remove('swap-out', 'grant-in');
+                    }, 1000);
+                }, delay);
+            });
+            SFX.correct && SFX.correct();
+        }
+
         function playDealAnimation() {
             const grid = document.getElementById('cardsGrid');
             if (!grid) return;
@@ -5838,7 +5924,7 @@
             document.getElementById('numbersPopup').style.display = 'none';
         }
 
-        // تمنع كتابة أكثر من أربع كلمات في مربع التلميح أثناء الكتابة نفسها
+        // تمنع كتابة أكثر من كلمتين في مربع التلميح أثناء الكتابة نفسها
         function enforceClueWords(input) {
             const clamped = clampClueWords(input.value);
             if (input.value !== clamped) {
@@ -5851,7 +5937,7 @@
         function submitClue() {
             if (isSiteOwner) return;
             let word = clampText(document.getElementById('clueWord').value, MAX_CLUE_LEN);
-            word = clampClueWords(word).trim();   // حارس نهائي: أربع كلمات فقط
+            word = clampClueWords(word).trim();   // حارس نهائي: كلمتان فقط
             const num = document.getElementById('numSelectorBtn').innerText;
             if (word === '' || num === '-') { showAlert('اكتب تلميح واختار رقم أولاً!'); return; }
 
@@ -6106,22 +6192,73 @@
             BOARD_REF.once('value', (snap) => {
                 const data = snap.val();
                 if (!data) return;
-                const revealed   = data.revealed   || [];
-                const revealedBy = data.revealedBy || [];
+                const words      = (data.words || []).slice();
+                const colors     = (data.colors || []).slice();
+                const revealed   = (data.revealed || []).slice();
+                const revealedBy = (data.revealedBy || []).slice();
                 let redLeft  = redWordsLeft;
                 let blueLeft = blueWordsLeft;
 
+                // كلمات اللوحة الحالية: لا نكرّر أياً منها عند الاستبدال
+                const onBoard = new Set(words);
+                // مخزون بديل من القائمة الكبيرة
+                const fresh = shuffleArr(massiveWordsPool.filter(w => !onBoard.has(w)));
+                let fi = 0;
+                const nextFresh = () => (fi < fresh.length ? fresh[fi++] : null);
+
+                // البطاقات البيضاء (المحايدة) غير المكشوفة: منها يأخذ الفريق
+                // كلماته الجديدة، كما طلب المستخدم.
+                const whitePool = [];
+                for (let i = 0; i < 25; i++) {
+                    if (colors[i] === 'word-neutral' && revealed[i] !== true) whitePool.push(i);
+                }
+                const whiteShuffled = shuffleArr(whitePool);   // shuffleArr يُرجع نسخة مخلوطة
+                let wi = 0;
+
                 const gs = r.guesses ? Object.keys(r.guesses).map(g => r.guesses[g]) : [];
+                const swapped = [];   // فهارس تتبدّل كلماتها (للتأثير)
+                const granted = [];   // بطاقات بيضاء تحوّلت لصالح الفريق
+
                 for (const g of gs) {
                     if (typeof g.index !== 'number') continue;
-                    if (revealed[g.index] !== true) continue;
-                    revealed[g.index] = false;              // أعِد إخفاء الكلمة
-                    revealedBy[g.index] = '';
+                    const idx = g.index;
+                    if (revealed[idx] !== true) continue;
+
+                    revealed[idx] = false;              // أعِد إخفاء البطاقة
+                    revealedBy[idx] = '';
                     // أعِد النقطة لصاحبها الأصلي
                     if (g.color === 'word-red')  redLeft++;
                     else if (g.color === 'word-blue') blueLeft++;
+
+                    // ١) الكلمة التي أُجيب عنها تُمسح وتُستبدل بكلمة جديدة
+                    const nw = nextFresh();
+                    if (nw) { words[idx] = nw; onBoard.add(nw); swapped.push(idx); }
+
+                    // ٢) البطاقة نفسها تصير بيضاء، ويُمنح الفريق بديلاً عنها
+                    //    من البطاقات البيضاء السابقة — فيبقى عدد كل لون ثابتاً.
+                    if (g.color === 'word-red' || g.color === 'word-blue') {
+                        let target = -1;
+                        while (wi < whiteShuffled.length) {
+                            const cand = whiteShuffled[wi++];
+                            if (cand !== idx && colors[cand] === 'word-neutral') { target = cand; break; }
+                        }
+                        if (target >= 0) {
+                            colors[idx] = 'word-neutral';   // مكان الإجابة صار أبيض
+                            colors[target] = g.color;       // وبطاقة بيضاء صارت للفريق
+                            const nw2 = nextFresh();        // بكلمة جديدة أيضاً
+                            if (nw2) { words[target] = nw2; onBoard.add(nw2); }
+                            granted.push(target);
+                        }
+                    }
                 }
-                BOARD_REF.update({ revealed: revealed, revealedBy: revealedBy }).catch(() => {});
+
+                BOARD_REF.update({
+                    words: words, colors: colors,
+                    revealed: revealed, revealedBy: revealedBy,
+                    // إشارة تُشغّل التأثير عند كل اللاعبين في آن واحد
+                    swapFx: { idx: swapped, grant: granted, ts: Date.now() }
+                }).catch(() => {});
+
                 STATE_REF.update({
                     redWordsLeft: Math.min(9, redLeft),
                     blueWordsLeft: Math.min(8, blueLeft),
@@ -6136,7 +6273,7 @@
                     cancelledTs: Date.now()
                 }).catch(() => {});
 
-                logRoundEvent('info', `تم إلغاء الدور ${displayNum} ونقاطه من قبل المدير`, r.team);
+                logRoundEvent('info', `تم إلغاء الدور ${displayNum} ونقاطه واستُبدلت كلماته`, r.team);
                 renderRoundsAdmin();
             });
         }
