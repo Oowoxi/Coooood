@@ -3745,7 +3745,10 @@
                         if (g && g.result === 'للخصم' && typeof g.index === 'number') wrongGuesses[g.index] = true;
                     }
                 }
-                // أعلِم الجميع بأي دور أُلغي حديثاً (مرة واحدة لكل إلغاء)
+                // أعلِم الجميع بأي دور أُلغي حديثاً (مرة واحدة لكل إلغاء).
+                // شرطان يمنعان ظهور إعلان قديم في شاشة الأدوار:
+                //   ١) أن يكون الإلغاء قد وقع بعد دخولي هذه الغرفة
+                //   ٢) أن تكون اللعبة جارية فعلاً (لا معنى للإعلان في شاشة الأدوار)
                 let newest = null;
                 for (const k in roundsData) {
                     const r = roundsData[k];
@@ -3754,9 +3757,12 @@
                     }
                 }
                 if (newest) {
-                    lastCancelledRoundSeen = newest.cancelledTs;
-                    const n = newest.cancelledNum || '';
-                    showNoticeBanner(`تم إلغاء الجولة ${toArabicOrdinal(n)} ونقاطها من قبل المدير`, 'banner-notice');
+                    lastCancelledRoundSeen = newest.cancelledTs;   // لا تُعِده مرة أخرى
+                    const stale = (newest.cancelledTs < roomJoinedAt) || !gameStartedFlag;
+                    if (!stale) {
+                        const n = newest.cancelledNum || '';
+                        showNoticeBanner(`تم إلغاء الجولة ${toArabicOrdinal(n)} ونقاطها من قبل المدير`, 'banner-notice');
+                    }
                 }
                 const m = document.getElementById('roundsAdminModal');
                 if (m && m.style.display === 'flex') renderRoundsAdmin();
@@ -4156,7 +4162,9 @@
                 roles: null,
                 countdown: null,
                 cancel: null,
-                pendingDisconnect: null
+                pendingDisconnect: null,
+                rounds: null,          // سجل الأدوار لا يُنقل للعبة التالية
+                skips: null            // ولا الحرمان من دور
             }).catch(() => {});
         }
 
@@ -4179,6 +4187,8 @@
                 roles: null,
                 chats: null,
                 pendingDisconnect: null,
+                rounds: null,          // سجل الأدوار لا يبقى بعد نهاية اللعبة
+                skips: null,
                 clue: { word: '', num: '-' },
                 winner: null,
                 countdown: { value: 3, isRunning: false },
