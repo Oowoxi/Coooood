@@ -3125,13 +3125,15 @@
                 mySpectatorId = specRef.key;
                 seedRoomStateFromCache(room);   // اعرض الشاغلين فوراً (الجولة 44)
                 showRoomUINow();                // بلا انتظار الخادم (الجولة 43)
+                const specSession = roomSessionId;
                 specRef.set({ name: currentPlayer.name, ts: Date.now() }).then(() => {
+                    if (specSession !== roomSessionId) return;   // غادر أثناء الانتظار
                     specRef.onDisconnect().remove();
                     attachGameListeners();
                     showRoomUINow();
                     updateLobbyUI(); buildRolesUI(); initializeChats(); applyOwnerViewMode();
                     isJoiningRoom = false;
-                }).catch(err => abortJoinUI('خطأ في الاتصال: ' + err.message));
+                }).catch(err => { if (specSession === roomSessionId) abortJoinUI('خطأ في الاتصال: ' + err.message); });
                 return;
             }
 
@@ -3161,12 +3163,18 @@
             gameState.players[myPlayerId] = playerData;
             showRoomUINow();
 
+            // لقطة الجلسة: كل ردّ متأخر يُقارن بها. الخروج يزيد roomSessionId،
+            // فيتجاهل أي ردّ من دخول سابق بدل أن يسحب اللاعب للغرفة من جديد
+            // أو يكتب في غرفة غادرها. (الجولة 45)
+            const joinSession = roomSessionId;
             newPlayerRef.set(playerData).then(() => {
+                if (joinSession !== roomSessionId) return;   // غادر أثناء الانتظار
                 newPlayerRef.onDisconnect().remove();
                 startHeartbeat();
                 // إن كان هناك لاعب منقطع ينتظر العودة ونفس الاسم، أعِد ربطه بدوره وأكمل الجولة
                 tryResumeDisconnectedSeat();
                 PLAYERS_REF.once('value', (snap) => {
+                    if (joinSession !== roomSessionId) return;
                     const players = snap.val() || {}; const keys = Object.keys(players);
                     if (keys.length === 1) {
                         // أنا أول لاعب: امسح أي بقايا من لعبة سابقة (لوحة/حالة/شات/أدوار)
@@ -3178,6 +3186,7 @@
                         const roleBeforePurge = currentPlayer.currentRoleId;
                         const seatBeforePurge = myPlayerId;
                         purgeGameData(GAME_REF, true).then(() => {
+                            if (joinSession !== roomSessionId) return;   // غادر أثناء التنظيف
                             STATE_REF.child('mode').set(currentMode);
                             COUNTDOWN_REF.set({ value: 3, isRunning: false });
                             if (roleBeforePurge && seatBeforePurge && seatBeforePurge === myPlayerId &&
@@ -3201,7 +3210,7 @@
                     updateLobbyUI(); buildRolesUI(); initializeChats();
                     isJoiningRoom = false;
                 });
-            }).catch(err => abortJoinUI('خطأ في الاتصال: ' + err.message));
+            }).catch(err => { if (joinSession === roomSessionId) abortJoinUI('خطأ في الاتصال: ' + err.message); });
         }
 
         // ينظّف الغرفة إن لم يبقَ فيها أحد. يُستدعى من كل مسارات المغادرة.
