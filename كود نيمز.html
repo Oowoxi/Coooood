@@ -1917,6 +1917,10 @@
         let lastSwapFxSeen = 0;           // آخر تأثير تبديل شُغّل (منعاً للتكرار)
         let cancelMessageShown = false;
         let roomJoinedAt = 0;
+        // مهلة سماح قبل اعتبار مقعد يتيماً (يمنع حذف مقعد لاعب جديد
+        // لم تصل بياناته بعد إلى بقية الأجهزة)
+        const ORPHAN_GRACE_MS = 6000;
+        let orphanSince = {};
         let roomSessionId = 0;
         // فترة تهدئة بعد إلغاء اللعبة حتى لا تتكرر الرسالة أو يُعاد الإلغاء أثناء التنظيف
         let cancelCooldownUntil = 0;
@@ -3065,6 +3069,7 @@
             if (ROUNDS_REF) ROUNDS_REF.off();
             if (SKIPS_REF) SKIPS_REF.off();
             roundsData = {}; skipsData = null; currentRoundKey = null; lastCancelledRoundSeen = 0;
+            orphanSince = {};
             if (SPECTATORS_REF) SPECTATORS_REF.off();
             if (GAME_REF) GAME_REF.child('roomDeleted').off();
             gameListenersAttached = false;
@@ -3082,6 +3087,7 @@
             const roles = gameState.roles || {};
             const updates = {};
             let foundOrphans = false;
+            const nowTs = Date.now();
             for (const roleId in roles) {
                 const playerId = roles[roleId];
                 // لا تعتبر مقعدي يتيماً لمجرد أن نسخة اللاعبين لم تصلني بعد.
@@ -3089,10 +3095,20 @@
                 // إشعار وجودي ضمن اللاعبين، فكان يُحذف بعد لحظة. (الجولة 44)
                 if (playerId && playerId === myPlayerId) continue;
                 if (playerId && !players[playerId]) {
+                    // الجولة 59: نفس السباق يقع مع *اللاعب الجديد* أيضاً.
+                    // هو يحجز دوره فيصلني خبر الدور قبل أن تصلني نسخة اللاعبين
+                    // التي تحتويه، فأراه يتيماً فأحذف مقعده — فيبقى المربع
+                    // "فارغ" عنده مع ظهور زر التخلي. الحل: مهلة سماح قصيرة،
+                    // فلا يُحذف المقعد إلا إذا بقي بلا صاحب فعلاً.
+                    if (!orphanSince[roleId]) { orphanSince[roleId] = nowTs; continue; }
+                    if (nowTs - orphanSince[roleId] < ORPHAN_GRACE_MS) continue;
                     updates[roleId] = null;
                     foundOrphans = true;
+                } else if (orphanSince[roleId]) {
+                    delete orphanSince[roleId];   // عاد صاحبه: ألغِ المؤقّت
                 }
             }
+            for (const rid in orphanSince) { if (!roles[rid]) delete orphanSince[rid]; }
             if (foundOrphans) {
                 ROLES_REF.update(updates).catch(() => {});
             }
@@ -3857,6 +3873,9 @@
                     currentPlayer.currentRoleId = gameState.players[myPlayerId].currentRoleId || null;
                 }
                 updateLobbyUI(); populateGamePanels();
+                // الأسماء والصور داخل مربعات الأدوار تُقرأ من قائمة اللاعبين،
+                // فأعِد رسمها كلما تغيّرت القائمة وإلا بقي المربع "فارغ".
+                buildRolesUI();
 
                 const leaveBtn = document.getElementById('leaveBtn');
                 const randomBtn = document.getElementById('randomTeamsBtn');
@@ -5894,7 +5913,8 @@
 
         // أزرار الإدارة تظهر لمدير الغرفة ولمالك الموقع فقط، وأثناء اللعب فقط
         function updateAdminButtons() {
-            const show = (!!CURRENT_ROOM_ID) && (isSiteOwner || currentPlayer.isOwner) && !!gameStartedFlag;
+            // الجولة 59: هذه الصلاحيات لمالك الموقع وحده، لا لمدير الغرفة.
+            const show = (!!CURRENT_ROOM_ID) && isSiteOwner && !!gameStartedFlag;
             const a = document.getElementById('cancelRoundBtn');
             const b = document.getElementById('skipTurnBtn');
             if (a) a.style.display = show ? 'inline-block' : 'none';
@@ -6195,8 +6215,9 @@
 
         // ── نافذة إلغاء الدور ──
         function openRoundsAdmin() {
-            if (!isSiteOwner && !currentPlayer.isOwner) {
-                showAlert('هذه الصلاحية لمدير الغرفة فقط'); return;
+            // الجولة 59: لمالك الموقع وحده — مدير الغرفة لا يملكها
+            if (!isSiteOwner) {
+                showAlert('هذه الصلاحية لمالك الموقع فقط'); return;
             }
             renderRoundsAdmin();
             const m = document.getElementById('roundsAdminModal');
@@ -6256,7 +6277,7 @@
 
         // إلغاء دور: يرجع الكلمات المكشوفة فيه ويعيد النقاط — رجوع بالزمن
         function cancelRound(key, displayNum) {
-            if (!isSiteOwner && !currentPlayer.isOwner) return;
+            if (!isSiteOwner) return;   // مالك الموقع وحده
             const r = roundsData[key];
             if (!r || r.cancelled) return;
             if (!BOARD_REF || !STATE_REF) return;
@@ -6393,8 +6414,9 @@
 
         // ── حرمان فريق من دوره القادم ──
         function openSkipAdmin() {
-            if (!isSiteOwner && !currentPlayer.isOwner) {
-                showAlert('هذه الصلاحية لمدير الغرفة فقط'); return;
+            // الجولة 59: لمالك الموقع وحده — مدير الغرفة لا يملكها
+            if (!isSiteOwner) {
+                showAlert('هذه الصلاحية لمالك الموقع فقط'); return;
             }
             const cur = skipsData && skipsData.team ? skipsData.team : '';
             document.getElementById('skipCurrentInfo').innerHTML = cur
@@ -6408,7 +6430,7 @@
             document.getElementById('skipAdminModal').style.display = 'none';
         }
         function applySkip(team) {
-            if (!isSiteOwner && !currentPlayer.isOwner) return;
+            if (!isSiteOwner) return;   // مالك الموقع وحده
             if (!SKIPS_REF) return;
             SKIPS_REF.set({
                 team: team,
@@ -6430,7 +6452,7 @@
             showAlert(`تم حرمان الفريق ${tn} من دور واحد`);
         }
         function clearSkip() {
-            if (!isSiteOwner && !currentPlayer.isOwner) return;
+            if (!isSiteOwner) return;   // مالك الموقع وحده
             if (SKIPS_REF) SKIPS_REF.remove().catch(() => {});
             closeSkipAdmin();
             showAlert('تم إلغاء الحرمان');
