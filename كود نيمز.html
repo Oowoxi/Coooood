@@ -2126,8 +2126,15 @@
         // ===== نبضة الحياة: تمييز الانقطاع الحقيقي عن مجرد تبديل التبويب =====
         // المتصفح يوقف onDisconnect أحياناً عند تبديل التبويب/التطبيق، والصفحة تبقى حيّة فعلياً.
         // لذلك نكتب نبضة كل 5 ثوانٍ، ولا نعتبر اللاعب منقطعاً إلا إذا توقفت نبضته فترة كافية.
-        const HEARTBEAT_MS = 5000;            // كل كم نكتب نبضة
-        const HEARTBEAT_DEAD_MS = 22000;      // بعد كم من الصمت نعتبره منقطعاً فعلاً
+        // المتصفح يخنق مؤقّتات التبويب الخفي: كروم يهبط بها إلى **مرة كل
+        // دقيقة** بعد خمس دقائق في الخلفية. وكانت مهلة الموت 22 ثانية، أي
+        // أصغر من فترة الخنق نفسها — فالتبويب الخلفي كان يقتل صاحبه.
+        // الحل: النبض من داخل Web Worker (خيط مستقل لا يُخنق)، ومهلة موت
+        // أوسع من أسوأ خنق ممكن.
+        const HEARTBEAT_MS = 4000;            // كل كم نكتب نبضة
+        const HEARTBEAT_DEAD_MS = 75000;      // بعد كم من الصمت نعتبره منقطعاً فعلاً
+        let heartbeatWorker = null;           // مؤقّت لا يخنقه المتصفح
+        let socketConnected = true;           // حالة الاتصال الحقيقية من الخادم
         let heartbeatInterval = null;
         let isPageHidden = false;             // الصفحة في الخلفية (تبديل تبويب/تطبيق)
         let HEARTBEAT_REF = null;             // game/heartbeats (منفصلة عن players حتى لا تُعيد رسم الواجهة)
@@ -3208,6 +3215,10 @@
                 // شاشة الأدوار صارت تظهر فوراً، فقد أحجز دوري قبل أن يصل
                 // إشعار وجودي ضمن اللاعبين، فكان يُحذف بعد لحظة. (الجولة 44)
                 if (playerId && playerId === myPlayerId) continue;
+                if (playerId && isPlayerBeating(playerId)) {
+                    if (orphanSince[roleId]) delete orphanSince[roleId];
+                    continue;               // ينبض: مقعده سيعود، لا تحذف دوره
+                }
                 if (playerId && !players[playerId]) {
                     // الجولة 59: نفس السباق يقع مع *اللاعب الجديد* أيضاً.
                     // هو يحجز دوره فيصلني خبر الدور قبل أن تصلني نسخة اللاعبين
@@ -4423,11 +4434,31 @@
                 HEARTBEAT_REF.child(myPlayerId).set(Date.now()).catch(() => {});
             };
             beat();
+            // الخيط المستقل لا يخضع لخنق التبويب الخفي، فتستمر النبضة
+            // بانتظام مهما طال بقاء الصفحة في الخلفية.
+            try {
+                const src = 'let t=null;onmessage=function(e){' +
+                            'if(e.data&&e.data.cmd==="start"){if(t)clearInterval(t);' +
+                            't=setInterval(function(){postMessage("t");},e.data.ms);}' +
+                            'else if(e.data&&e.data.cmd==="stop"){if(t)clearInterval(t);t=null;}};';
+                const url = URL.createObjectURL(new Blob([src], { type: 'application/javascript' }));
+                heartbeatWorker = new Worker(url);
+                URL.revokeObjectURL(url);
+                heartbeatWorker.onmessage = beat;
+                heartbeatWorker.postMessage({ cmd: 'start', ms: HEARTBEAT_MS });
+            } catch (e) {
+                heartbeatWorker = null;   // متصفح يمنع Worker: نعود للمؤقّت العادي
+            }
+            // مؤقّت عادي كشبكة أمان دائماً (يعمل بيقين حين تكون الصفحة ظاهرة)
             heartbeatInterval = setInterval(beat, HEARTBEAT_MS);
         }
 
         function stopHeartbeat() {
             if (heartbeatInterval) { clearInterval(heartbeatInterval); heartbeatInterval = null; }
+            if (heartbeatWorker) {
+                try { heartbeatWorker.postMessage({ cmd: 'stop' }); heartbeatWorker.terminate(); } catch (e) {}
+                heartbeatWorker = null;
+            }
         }
 
         // هل هذا اللاعب ميت فعلاً؟ (نبضته توقفت مدة أطول من المسموح)
@@ -4436,6 +4467,22 @@
             const hb = heartbeats[pid] || 0;
             if (!hb) return false;            // لا توجد نبضة مسجّلة بعد: لا نحكم عليه
             return (Date.now() - hb) > HEARTBEAT_DEAD_MS;
+        }
+
+        // هل نبضة هذا اللاعب حيّة الآن؟ (دليل قاطع على وجوده)
+        function isPlayerBeating(pid) {
+            const hb = (pid && heartbeats[pid]) || 0;
+            return !!hb && (Date.now() - hb) <= HEARTBEAT_DEAD_MS;
+        }
+
+        // مقعد مفقود فعلاً؟ النبضة الحيّة تنفي الغياب مهما بدا المقعد.
+        // كان اختفاء المقعد وحده كافياً للحكم بالانقطاع، و onDisconnect
+        // يحذف المقعد عند أي تذبذب لحظي في الشبكة — فتُلغى اللعبة بلا سبب.
+        function isSeatMissing(pid, players) {
+            if (!pid) return false;
+            if (isPlayerBeating(pid)) return false;        // ينبض = موجود
+            if (!players[pid]) return true;                // لا مقعد ولا نبضة
+            return isPlayerStale(pid);                     // مقعد بلا نبضة
         }
 
         // إذا خرج المدير أو انقطع، انقل التاج لأقدم لاعب متبقٍ.
@@ -4513,6 +4560,34 @@
             });
         }
 
+        // ===== مراقبة الاتصال الحقيقية =====
+        // نعرف من الخادم نفسه متى سقط السوكِت ومتى عاد. سقوطه لحظياً أمر
+        // شائع جداً (تبديل شبكة، نوم الجهاز، ضعف إشارة)، وكان كافياً
+        // لتشغيل onDisconnect فيُحذف المقعد وتُلغى اللعبة. الآن نعالجه
+        // كتذبذب عابر: نعيد تسليح الحذف ونستعيد المقعد فور العودة.
+        function watchConnection() {
+            try {
+                db.ref('.info/connected').on('value', (snap) => {
+                    const wasDown = !socketConnected;
+                    socketConnected = snap.val() === true;
+                    if (!socketConnected) return;
+                    if (!wasDown) return;
+                    // عاد الاتصال: أعد كل شيء إلى نصابه بلا إزعاج اللاعب
+                    if (isSiteOwner || !CURRENT_ROOM_ID || isLeavingPage || isLeavingRoom) return;
+                    if (myPlayerId && HEARTBEAT_REF) {
+                        HEARTBEAT_REF.child(myPlayerId).set(Date.now()).catch(() => {});
+                    }
+                    if (myPlayerId && PLAYERS_REF) {
+                        try { PLAYERS_REF.child(myPlayerId).onDisconnect().remove(); } catch (e) {}
+                    }
+                    ensureMySeatAlive();
+                    tryResumeDisconnectedSeat();
+                    startHeartbeat();
+                });
+            } catch (e) {}
+        }
+        watchConnection();
+
         // ===== التعامل مع تبديل التبويب/التطبيق =====
         // هذه ليست انقطاعاً: الصفحة ما زالت حيّة. نستمر بالنبض، وعند العودة
         // نتأكد فوراً أن مقعدنا لم يُحذف بالخطأ ونستعيده إن لزم.
@@ -4532,12 +4607,25 @@
         // إغلاق حقيقي للصفحة/التبويب => إزالة فورية بلا انتظار المهلة
         window.addEventListener('pagehide', (e) => {
             if (e && e.persisted) return;    // ذهبت للذاكرة المؤقتة فقط، ليست إغلاقاً
+            // على الجوال تنطلق pagehide أحياناً عند تصغير التطبيق والصفحة حيّة.
+            // الإغلاق الحقيقي يجعل الصفحة مخفيّة؛ فإن بقيت ظاهرة فليست إغلاقاً.
+            if (document.visibilityState === 'visible') return;
             isLeavingPage = true;
             stopHeartbeat();
             if (myPlayerId && !isSiteOwner) {
                 if (HEARTBEAT_REF) HEARTBEAT_REF.child(myPlayerId).remove().catch(() => {});
                 if (PLAYERS_REF) PLAYERS_REF.child(myPlayerId).remove().catch(() => {});
             }
+        });
+
+        // إن عادت الصفحة للحياة بعد pagehide (استئناف من ذاكرة المتصفح)
+        // فهي لم تُغلق: ألغِ علامة المغادرة وأعد المقعد والنبض.
+        window.addEventListener('pageshow', () => {
+            if (!isLeavingPage) return;
+            isLeavingPage = false;
+            if (isSiteOwner || !CURRENT_ROOM_ID || isLeavingRoom) return;
+            ensureMySeatAlive();
+            startHeartbeat();
         });
 
         function tryResumeDisconnectedSeat() {
@@ -4749,7 +4837,7 @@
             for (const roleId in roles) {
                 const pid = roles[roleId];
                 // مقعد مفقود = اللاعب غير موجود أصلاً، أو موجود لكن نبضته توقفت (انقطاع حقيقي)
-                if (pid && (!players[pid] || isPlayerStale(pid))) {
+                if (isSeatMissing(pid, players)) {
                     if (!byPlayer[pid]) byPlayer[pid] = [];
                     byPlayer[pid].push(roleId);
                 }
@@ -4767,6 +4855,8 @@
             if (!CURRENT_ROOM_ID || !STATE_REF) return;
             // المالك مشاهد فقط: لا يحذف غرفاً ولا يلغي جولات
             if (isSiteOwner) return;
+            // شبكتي أنا ساقطة؟ إذاً سأرى الجميع غائبين. لا أحكم على أحد.
+            if (!socketConnected) return;
             const currentPlayersCount = Object.keys(gameState.players || {}).length;
 
             if (currentPlayersCount === 0) {
@@ -4801,7 +4891,14 @@
                     missing.forEach(m => beginReconnectGrace(m));
                     return;
                 }
-                if (currentPlayersCount < required) {
+                // العدد وحده مضلّل: onDisconnect يحذف المقعد عند أي تذبذب
+                // لحظي، فيبدو العدد ناقصاً وصاحبه ما زال ينبض. نحتسب
+                // النابضين أيضاً، فلا يُعلَن نقص إلا بغياب حقيقي.
+                const beatingIds = {};
+                for (const k in (gameState.players || {})) beatingIds[k] = true;
+                for (const k in (heartbeats || {})) { if (isPlayerBeating(k)) beatingIds[k] = true; }
+                const livingCount = Object.keys(beatingIds).length;
+                if (livingCount < required) {
                     // نقص لاعب بلا دور معلّق (نادر) — امنح مهلة عامة أيضاً
                     beginReconnectGrace({ name: 'أحد اللاعبين', roles: [] });
                     return;
@@ -4810,6 +4907,7 @@
                 // فإن عاد اللاعب (أو كان مجرد تبديل تبويب) تستكمل الجولة بلا إزعاج.
                 for (const roleId in gameState.roles) {
                     const playerId = gameState.roles[roleId];
+                    if (playerId && isPlayerBeating(playerId)) continue;   // ينبض: موجود
                     if (playerId && !gameState.players[playerId]) {
                         const known = lastKnownPlayers[playerId];
                         beginReconnectGrace({ name: (known && known.name) || 'أحد اللاعبين', roles: [roleId] });
