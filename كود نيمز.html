@@ -1298,9 +1298,279 @@
         .log-time { color: var(--muted); font-size: 11px; }
         .log-icon { font-size: 15px; }
 
+
+        /* ══════════════════════════════════════════════════════════
+           الجولة 46 — حزمة التأثيرات الكبرى (NJD FX)
+           كل ما يلي transform/opacity/filter فقط: لا يغيّر شكل أو
+           حجم أي صفحة، ولا يزيح عنصراً عن مكانه.
+           ══════════════════════════════════════════════════════════ */
+
+        /* ── 1) طبقة الجسيمات الحيّة خلف كل شيء ── */
+        #fxCanvas {
+            position: fixed; inset: 0; width: 100%; height: 100%;
+            z-index: -2; pointer-events: none; opacity: 0;
+            transition: opacity 1.2s ease;
+        }
+        #fxCanvas.fx-on { opacity: 1; }
+
+        /* ── 2) وهج مستقطب يتبع المؤشر ── */
+        #fxGlow {
+            position: fixed; top: 0; left: 0; width: 460px; height: 460px;
+            margin: -230px 0 0 -230px; border-radius: 50%;
+            background: radial-gradient(circle,
+                rgba(255,255,255,0.055) 0%, rgba(255,255,255,0.022) 38%, rgba(0,0,0,0) 68%);
+            z-index: -1; pointer-events: none; opacity: 0;
+            transition: opacity .55s ease;
+            will-change: transform;
+        }
+        #fxGlow.fx-on { opacity: 1; }
+        body.game-active #fxGlow { opacity: .75; }
+
+        /* ── 3) شبكة ضوئية تتنفّس داخل اللعبة ── */
+        #fxGrid {
+            position: fixed; inset: -20%; z-index: -2; pointer-events: none;
+            opacity: 0; transition: opacity 1.4s ease;
+            background-image:
+                linear-gradient(rgba(255,255,255,0.030) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.030) 1px, transparent 1px);
+            background-size: 64px 64px;
+            mask-image: radial-gradient(ellipse at 50% 50%, #000 12%, transparent 68%);
+            -webkit-mask-image: radial-gradient(ellipse at 50% 50%, #000 12%, transparent 68%);
+            animation: gridDrift 34s linear infinite;
+        }
+        body.game-active #fxGrid { opacity: 1; }
+        @keyframes gridDrift {
+            0%   { transform: translate3d(0,0,0)      scale(1); }
+            50%  { transform: translate3d(32px,32px,0) scale(1.04); }
+            100% { transform: translate3d(0,0,0)      scale(1); }
+        }
+
+        /* ── 4) هالة الفريق صاحب الدور: نبض من حواف الشاشة ── */
+        #fxTeamAura {
+            position: fixed; inset: 0; z-index: -1; pointer-events: none;
+            opacity: 0; transition: opacity .9s ease;
+        }
+        #fxTeamAura.aura-on { opacity: 1; }
+        #fxTeamAura::before, #fxTeamAura::after {
+            content: ''; position: absolute; top: 0; bottom: 0; width: 30vw;
+            will-change: transform, opacity;
+            animation: auraBreathe 4.2s ease-in-out infinite;
+        }
+        #fxTeamAura::before { left: 0;
+            background: linear-gradient(90deg, var(--aura-c, rgba(224,34,34,.20)), transparent); }
+        #fxTeamAura::after  { right: 0;
+            background: linear-gradient(270deg, var(--aura-c, rgba(224,34,34,.20)), transparent);
+            animation-delay: .35s; }
+        @keyframes auraBreathe {
+            0%,100% { opacity: .40; transform: scaleX(.90); }
+            50%     { opacity: 1;   transform: scaleX(1.06); }
+        }
+
+        /* ── 5) البطاقات: عمق ثلاثي وبريق زجاجي ── */
+        .word-card {
+            transform-style: preserve-3d;
+            transition: transform .34s cubic-bezier(.22,1,.36,1),
+                        box-shadow .34s ease, filter .3s ease;
+        }
+        .word-card:hover:not(.revealed) {
+            transform: translateY(-4px) scale(calc(var(--card-scale) * 1.035));
+            box-shadow: 0 14px 30px rgba(0,0,0,.55), 0 0 22px rgba(255,255,255,.10);
+            filter: brightness(1.10);
+            z-index: 3;
+        }
+        .cards-grid:hover .word-card:not(:hover):not(.revealed) {
+            filter: brightness(.86) saturate(.88);
+        }
+        /* موجة الكشف: نبضة ضوء تخرج من البطاقة */
+        .word-card.revealed::before {
+            content: ''; position: absolute; inset: 0; border-radius: inherit;
+            pointer-events: none; opacity: 0;
+            box-shadow: 0 0 0 0 rgba(255,255,255,.55);
+        }
+        .word-card.revealed:not(.no-reveal-anim)::before {
+            animation: revealShock .85s cubic-bezier(.16,1,.3,1) forwards;
+        }
+        @keyframes revealShock {
+            0%   { opacity: .95; box-shadow: 0 0 0 0 rgba(255,255,255,.55); transform: scale(1); }
+            70%  { opacity: .18; box-shadow: 0 0 0 16px rgba(255,255,255,0); }
+            100% { opacity: 0;   box-shadow: 0 0 0 22px rgba(255,255,255,0); transform: scale(1.02); }
+        }
+        /* البطاقة السوداء: اهتزاز مرعب عند كشفها */
+        .word-card.word-black.revealed:not(.no-reveal-anim) {
+            animation: blackQuake .72s cubic-bezier(.36,.07,.19,.97) both;
+        }
+        @keyframes blackQuake {
+            10%,90% { transform: translate3d(-2px,0,0) rotate(-.5deg); }
+            20%,80% { transform: translate3d(4px,0,0)  rotate(.6deg); }
+            30%,50%,70% { transform: translate3d(-6px,0,0) rotate(-.8deg); }
+            40%,60% { transform: translate3d(6px,0,0)  rotate(.8deg); }
+        }
+
+        /* ── 6) اهتزاز الشاشة عند الأحداث الكبرى ── */
+        body.fx-shake #gameScreen { animation: scrShake .5s cubic-bezier(.36,.07,.19,.97) both; }
+        @keyframes scrShake {
+            10%,90% { transform: translate3d(-3px,0,0); }
+            20%,80% { transform: translate3d(5px,0,0); }
+            30%,50%,70% { transform: translate3d(-8px,0,0); }
+            40%,60% { transform: translate3d(8px,0,0); }
+        }
+
+        /* ── 7) ومضة ملوّنة تغمر الشاشة ── */
+        #fxFlash {
+            position: fixed; inset: 0; z-index: 9995; pointer-events: none;
+            opacity: 0; background: var(--flash-c, #fff);
+        }
+        #fxFlash.flash-go { animation: flashHit .62s ease-out forwards; }
+        @keyframes flashHit {
+            0%   { opacity: 0; }
+            12%  { opacity: .40; }
+            100% { opacity: 0; }
+        }
+
+        /* ── 8) الأزرار: بريق سائل + ضغط لمسي ── */
+        .icon-btn, .enter-btn, .mode-btn, .submit-clue-btn, .end-turn-btn,
+        .random-teams-btn, .kick-btn, .leave-role-btn, .howto-btn, .surrender-btn {
+            position: relative; overflow: hidden;
+            transition: transform .18s cubic-bezier(.34,1.56,.64,1), box-shadow .22s ease, filter .22s ease;
+        }
+        .icon-btn:active, .enter-btn:active, .mode-btn:active, .submit-clue-btn:active,
+        .end-turn-btn:active, .random-teams-btn:active, .kick-btn:active,
+        .leave-role-btn:active, .howto-btn:active, .surrender-btn:active {
+            transform: scale(.94);
+        }
+        .enter-btn:hover, .mode-btn:hover, .submit-clue-btn:hover, .end-turn-btn:hover {
+            filter: brightness(1.12);
+            box-shadow: 0 8px 26px rgba(0,0,0,.45), 0 0 18px rgba(255,255,255,.12);
+        }
+        /* موجة نقر تنطلق من موضع الإصبع */
+        .fx-ripple {
+            position: absolute; border-radius: 50%; pointer-events: none;
+            background: radial-gradient(circle, rgba(255,255,255,.42), rgba(255,255,255,0) 65%);
+            transform: translate(-50%,-50%) scale(0); opacity: .9;
+            animation: rippleOut .62s ease-out forwards;
+        }
+        @keyframes rippleOut {
+            to { transform: translate(-50%,-50%) scale(1); opacity: 0; }
+        }
+
+        /* ── 9) بطاقات الغرف واللاعبين: ميلان حيّ ── */
+        .room-card {
+            transition: transform .3s cubic-bezier(.22,1,.36,1), box-shadow .3s ease, filter .3s ease;
+        }
+        .room-card:hover {
+            transform: translateY(-5px) scale(1.025);
+            box-shadow: 0 16px 34px rgba(0,0,0,.55), 0 0 20px rgba(255,255,255,.09);
+            filter: brightness(1.08);
+        }
+        .player-card { transition: transform .3s cubic-bezier(.34,1.56,.64,1), filter .3s ease; }
+        .player-card:hover { transform: translateY(-3px) scale(1.05); filter: brightness(1.12); }
+        .role-box {
+            transition: transform .26s cubic-bezier(.34,1.56,.64,1), box-shadow .26s ease, filter .26s ease;
+        }
+        .role-box:hover {
+            transform: translateY(-3px) scale(1.04);
+            box-shadow: 0 10px 24px rgba(0,0,0,.5), 0 0 16px rgba(255,255,255,.10);
+        }
+        /* دخول متتابع لبطاقات الغرف */
+        .room-card.fx-stagger { animation: cardRise .5s cubic-bezier(.22,1,.36,1) both; }
+        @keyframes cardRise {
+            from { transform: translate3d(0,18px,0) scale(.96); opacity: 0; }
+            to   { transform: translate3d(0,0,0)    scale(1);   opacity: 1; }
+        }
+
+        /* ── 10) شارة الدور: توهّج نابض ── */
+        .role-box.my-turn-glow {
+            animation: turnGlow 1.8s ease-in-out infinite;
+        }
+        @keyframes turnGlow {
+            0%,100% { box-shadow: 0 0 0 0 rgba(255,255,255,.30); }
+            50%     { box-shadow: 0 0 22px 4px rgba(255,255,255,.22); }
+        }
+
+        /* ── 11) نص التلميحة: ظهور حرفي متتابع ── */
+        .display-clue-box.clue-arrive { animation: clueArrive .6s cubic-bezier(.22,1,.36,1) both; }
+        @keyframes clueArrive {
+            0%   { transform: scale(.82) rotateX(35deg); opacity: 0; filter: blur(4px); }
+            60%  { transform: scale(1.06) rotateX(0deg);  opacity: 1; filter: blur(0); }
+            100% { transform: scale(1); }
+        }
+
+        /* ── 12) نجوم النصر تتساقط خلف اللوحة ── */
+        .fx-star {
+            position: fixed; top: -30px; pointer-events: none; z-index: 10050;
+            font-size: 18px; will-change: transform, opacity;
+            animation: starFall linear forwards;
+        }
+        @keyframes starFall {
+            0%   { transform: translate3d(0,0,0) rotate(0deg) scale(.6); opacity: 0; }
+            10%  { opacity: 1; }
+            100% { transform: translate3d(var(--sx,0), 108vh, 0) rotate(var(--sr,540deg)) scale(1.1); opacity: 0; }
+        }
+
+        /* ── 13) موجة صدمة دائرية من مركز الحدث ── */
+        .fx-shockwave {
+            position: fixed; border-radius: 50%; pointer-events: none; z-index: 9994;
+            border: 2px solid rgba(255,255,255,.55);
+            transform: translate(-50%,-50%) scale(0); opacity: .9;
+            animation: shockOut .9s cubic-bezier(.16,1,.3,1) forwards;
+        }
+        @keyframes shockOut {
+            to { transform: translate(-50%,-50%) scale(1); opacity: 0; }
+        }
+
+        /* ── 14) العدّاد: نبض تحذيري يغمر الشاشة ── */
+        body.fx-danger::after {
+            content: ''; position: fixed; inset: 0; z-index: 9993; pointer-events: none;
+            box-shadow: inset 0 0 130px rgba(217,43,43,.42);
+            animation: dangerPulse 1s ease-in-out infinite;
+        }
+        @keyframes dangerPulse {
+            0%,100% { opacity: .35; }
+            50%     { opacity: 1; }
+        }
+
+        /* ── 15) انتقال الشاشات: انزلاق سينمائي ── */
+        .fx-screen-in { animation: screenSlide .55s cubic-bezier(.22,1,.36,1) both; }
+        @keyframes screenSlide {
+            from { transform: translate3d(0,26px,0) scale(.985); }
+            to   { transform: translate3d(0,0,0)    scale(1); }
+        }
+
+        /* ── 16) العنوان: لمعان معدني دوري ── */
+        .fx-title-shine { position: relative; overflow: hidden; }
+        .fx-title-shine::after {
+            content: ''; position: absolute; top: 0; left: -60%; width: 40%; height: 100%;
+            background: linear-gradient(100deg, transparent, rgba(255,255,255,.30), transparent);
+            transform: skewX(-18deg); pointer-events: none;
+            animation: titleShine 4.5s ease-in-out infinite;
+        }
+        @keyframes titleShine {
+            0%, 62% { transform: translateX(0) skewX(-18deg); }
+            88%,100%{ transform: translateX(420%) skewX(-18deg); }
+        }
+
+        /* ── احترام تفضيل تقليل الحركة: نُطفئ كل ما سبق ── */
+        @media (prefers-reduced-motion: reduce) {
+            #fxCanvas, #fxGlow, #fxGrid, #fxTeamAura { display: none !important; }
+            .word-card, .room-card, .player-card, .role-box { transition: none !important; }
+            .word-card.revealed::before, .word-card.word-black.revealed,
+            body.fx-shake #gameScreen, #fxFlash.flash-go, .fx-star, .fx-shockwave,
+            .fx-ripple, .room-card.fx-stagger, .display-clue-box.clue-arrive,
+            .fx-screen-in, .fx-title-shine::after, .role-box.my-turn-glow,
+            body.fx-danger::after {
+                animation: none !important;
+            }
+        }
     </style>
 </head>
 <body>
+
+    <!-- طبقات التأثيرات (الجولة 46) — كلها pointer-events:none ولا تعترض أي ضغطة -->
+    <canvas id="fxCanvas"></canvas>
+    <div id="fxGrid"></div>
+    <div id="fxTeamAura"></div>
+    <div id="fxGlow"></div>
+    <div id="fxFlash"></div>
 
     <div id="chatOverlayModal" class="chat-modal-overlay">
         <div class="chat-modal-box">
@@ -1911,6 +2181,7 @@
         let timerTurnRef = '';
 
         function stopTurnTimer() {
+            try { FX.danger(false); } catch (e) {}   // لا يبقى النبض بعد انتهاء الدور
             if (turnTimerInterval) { clearInterval(turnTimerInterval); turnTimerInterval = null; }
             turnDeadline = 0;
             const el = document.getElementById('turnTimer');
@@ -1943,6 +2214,7 @@
                 el.innerText = '⏱ ' + left;
                 if (left <= 10) el.classList.add('timer-danger'); else el.classList.remove('timer-danger');
             }
+            FX.danger(left <= 10 && left > 0);   // نبض أحمر يغمر الشاشة (الجولة 46)
             updateTurnProgress(left, TURN_SECONDS);   // شريط الزمن: نفس النبضة، بلا مؤقّت إضافي
             if (left <= 5 && left > 0) { if (left <= 2) SFX.tickLast(); else SFX.tick(); }
 
@@ -2849,6 +3121,7 @@
                     </div>
                 `;
             }
+            if (shown) FX.stagger(container.querySelectorAll('.room-card'), 'fx-stagger');
             if (!shown) {
                 // فرّق بين «وصلت البيانات ولا توجد غرف» و«لم تصل البيانات بعد».
                 // كان الثاني يُعرض كالأول فيرى اللاعب «لا توجد غرف» ثم تظهر
@@ -3020,7 +3293,9 @@
         function showRoomUINow() {
             document.getElementById('roomsScreen').style.display = 'none';
             if (document.getElementById('gameScreen').style.display !== 'flex') {
-                document.getElementById('rolesScreen').style.display = 'flex';
+                const rs = document.getElementById('rolesScreen');
+                rs.style.display = 'flex';
+                playEnterFx(rs, 'fx-screen-in');   // انزلاق سينمائي (الجولة 46)
             }
             // ═══ ابنِ محتوى الغرفة فوراً (الجولة 44) ═══
             // إظهار الشاشة وحده لا يكفي: مربعات الأدوار وقائمة اللاعبين والأزرار
@@ -3252,6 +3527,7 @@
             currentPlayer.isOwner = false;
             myPlayerId = null;
             mySpectatorId = null;
+            try { FX.aura(null); FX.danger(false); } catch (e) {}   // إطفاء تأثيرات اللعب
             activeChatType = null;
             clearInterval(countdownInterval);
             countdownInterval = null;
@@ -4447,6 +4723,213 @@
 
         // ── إشعار خفيف: عنصر واحد يُعاد استعماله ──
         let njdToastEl = null, njdToastTimer = null;
+        /* ══════════════════════════════════════════════════════════
+           الجولة 46 — محرّك التأثيرات NJD FX
+           كل شيء هنا يحترم prefers-reduced-motion، ويتوقف تماماً
+           حين تكون الصفحة مخفية، ولا يلمس أي منطق لعبة.
+           ══════════════════════════════════════════════════════════ */
+        const FX = (function () {
+            const reduce = () => {
+                try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; }
+                catch (e) { return false; }
+            };
+            let started = false, rafId = null, particles = [], ctx = null, cv = null;
+            let W = 0, H = 0, DPR = 1, lastT = 0, paused = false;
+            // كثافة الجسيمات حسب مساحة الشاشة: الجوال أخفّ
+            function targetCount() {
+                const area = window.innerWidth * window.innerHeight;
+                return Math.max(26, Math.min(74, Math.round(area / 22000)));
+            }
+            function resize() {
+                if (!cv) return;
+                DPR = Math.min(window.devicePixelRatio || 1, 2);
+                W = window.innerWidth; H = window.innerHeight;
+                cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
+                cv.style.width = W + 'px'; cv.style.height = H + 'px';
+                if (ctx) ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+                seed();
+            }
+            function seed() {
+                const n = targetCount();
+                while (particles.length > n) particles.pop();
+                while (particles.length < n) particles.push(mk());
+            }
+            function mk() {
+                return {
+                    x: Math.random() * W, y: Math.random() * H,
+                    r: 0.7 + Math.random() * 1.9,
+                    vx: (Math.random() - 0.5) * 0.16,
+                    vy: -0.05 - Math.random() * 0.20,
+                    a: 0.10 + Math.random() * 0.30,
+                    tw: Math.random() * Math.PI * 2
+                };
+            }
+            function frame(t) {
+                rafId = requestAnimationFrame(frame);
+                if (paused || !ctx) return;
+                const dt = Math.min(48, t - lastT || 16); lastT = t;
+                const k = dt / 16.67;
+                ctx.clearRect(0, 0, W, H);
+                for (const p of particles) {
+                    p.x += p.vx * k; p.y += p.vy * k; p.tw += 0.022 * k;
+                    if (p.y < -12) { p.y = H + 8; p.x = Math.random() * W; }
+                    if (p.x < -12) p.x = W + 8; else if (p.x > W + 12) p.x = -8;
+                    const al = p.a * (0.62 + 0.38 * Math.sin(p.tw));
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.r, 0, 6.2832);
+                    ctx.fillStyle = 'rgba(255,255,255,' + al.toFixed(3) + ')';
+                    ctx.fill();
+                }
+            }
+            function start() {
+                if (started || reduce()) return;
+                cv = document.getElementById('fxCanvas');
+                if (!cv || !cv.getContext) return;
+                ctx = cv.getContext('2d');
+                if (!ctx) return;
+                started = true;
+                resize();
+                window.addEventListener('resize', resize);
+                document.addEventListener('visibilitychange', () => { paused = document.hidden; });
+                cv.classList.add('fx-on');
+                const g = document.getElementById('fxGlow');
+                if (g) g.classList.add('fx-on');
+                rafId = requestAnimationFrame(frame);
+                bindPointer();
+                bindRipples();
+            }
+            // وهج يلاحق المؤشر/الإصبع بانسيابية
+            let gx = 0, gy = 0, tx = 0, ty = 0, glowRaf = null;
+            function bindPointer() {
+                const g = document.getElementById('fxGlow');
+                if (!g) return;
+                tx = gx = window.innerWidth / 2; ty = gy = window.innerHeight / 2;
+                const move = (x, y) => { tx = x; ty = y; };
+                window.addEventListener('mousemove', e => move(e.clientX, e.clientY), { passive: true });
+                window.addEventListener('touchmove', e => {
+                    if (e.touches && e.touches[0]) move(e.touches[0].clientX, e.touches[0].clientY);
+                }, { passive: true });
+                const step = () => {
+                    glowRaf = requestAnimationFrame(step);
+                    if (paused) return;
+                    gx += (tx - gx) * 0.085; gy += (ty - gy) * 0.085;
+                    g.style.transform = 'translate3d(' + gx.toFixed(1) + 'px,' + gy.toFixed(1) + 'px,0)';
+                };
+                glowRaf = requestAnimationFrame(step);
+            }
+            // موجة نقر على كل زر
+            function bindRipples() {
+                const SEL = '.icon-btn,.enter-btn,.mode-btn,.submit-clue-btn,.end-turn-btn,' +
+                            '.random-teams-btn,.kick-btn,.leave-role-btn,.howto-btn,.surrender-btn,.send-msg-btn';
+                document.addEventListener('pointerdown', (e) => {
+                    if (reduce()) return;
+                    const btn = e.target && e.target.closest ? e.target.closest(SEL) : null;
+                    if (!btn) return;
+                    try {
+                        const rect = btn.getBoundingClientRect();
+                        const d = Math.max(rect.width, rect.height) * 2.1;
+                        const rp = document.createElement('span');
+                        rp.className = 'fx-ripple';
+                        rp.style.width = rp.style.height = d + 'px';
+                        rp.style.left = (e.clientX - rect.left) + 'px';
+                        rp.style.top  = (e.clientY - rect.top) + 'px';
+                        btn.appendChild(rp);
+                        setTimeout(() => { try { rp.remove(); } catch (x) {} }, 700);
+                    } catch (x) {}
+                }, { passive: true });
+            }
+            // ── واجهة عامة ──
+            return {
+                init: start,
+                reduce: reduce,
+                // ومضة تغمر الشاشة بلون
+                flash(color) {
+                    if (reduce()) return;
+                    const el = document.getElementById('fxFlash');
+                    if (!el) return;
+                    el.style.setProperty('--flash-c', color || '#ffffff');
+                    el.classList.remove('flash-go'); void el.offsetWidth;
+                    el.classList.add('flash-go');
+                },
+                // اهتزاز الشاشة
+                shake() {
+                    if (reduce()) return;
+                    document.body.classList.remove('fx-shake'); void document.body.offsetWidth;
+                    document.body.classList.add('fx-shake');
+                    setTimeout(() => document.body.classList.remove('fx-shake'), 600);
+                },
+                // موجة صدمة دائرية من نقطة
+                shock(x, y, color) {
+                    if (reduce()) return;
+                    try {
+                        const w = document.createElement('div');
+                        w.className = 'fx-shockwave';
+                        const size = Math.max(window.innerWidth, window.innerHeight) * 1.15;
+                        w.style.width = w.style.height = size + 'px';
+                        w.style.left = x + 'px'; w.style.top = y + 'px';
+                        if (color) w.style.borderColor = color;
+                        document.body.appendChild(w);
+                        setTimeout(() => { try { w.remove(); } catch (e) {} }, 1000);
+                    } catch (e) {}
+                },
+                // موجة صدمة من مركز عنصر
+                shockAt(el, color) {
+                    if (!el || reduce()) return;
+                    try {
+                        const r = el.getBoundingClientRect();
+                        this.shock(r.left + r.width / 2, r.top + r.height / 2, color);
+                    } catch (e) {}
+                },
+                // مطر نجوم للنصر
+                stars(n) {
+                    if (reduce()) return;
+                    const total = Math.min(n || 26, 40);
+                    const glyphs = ['✦', '✧', '★', '✶'];
+                    for (let i = 0; i < total; i++) {
+                        const s2 = document.createElement('div');
+                        s2.className = 'fx-star';
+                        s2.textContent = glyphs[i % glyphs.length];
+                        s2.style.left = (Math.random() * 100) + 'vw';
+                        s2.style.setProperty('--sx', ((Math.random() - 0.5) * 220).toFixed(0) + 'px');
+                        s2.style.setProperty('--sr', (360 + Math.random() * 540).toFixed(0) + 'deg');
+                        s2.style.color = Math.random() > .5 ? 'rgba(255,255,255,.92)' : 'var(--pick-yellow)';
+                        s2.style.fontSize = (13 + Math.random() * 16).toFixed(0) + 'px';
+                        s2.style.animationDuration = (2.6 + Math.random() * 2.2).toFixed(2) + 's';
+                        s2.style.animationDelay = (Math.random() * 1.1).toFixed(2) + 's';
+                        document.body.appendChild(s2);
+                        setTimeout(() => { try { s2.remove(); } catch (e) {} }, 6200);
+                    }
+                },
+                // هالة الفريق صاحب الدور
+                aura(team) {
+                    const el = document.getElementById('fxTeamAura');
+                    if (!el) return;
+                    if (!team) { el.classList.remove('aura-on'); return; }
+                    el.style.setProperty('--aura-c',
+                        team === 'red' ? 'rgba(224,34,34,.22)' : 'rgba(18,115,204,.22)');
+                    el.classList.add('aura-on');
+                },
+                // نبض خطر عام
+                danger(on) {
+                    document.body.classList.toggle('fx-danger', !!on && !reduce());
+                },
+                // دخول متتابع لمجموعة عناصر
+                stagger(nodes, cls) {
+                    if (reduce() || !nodes) return;
+                    const arr = [].slice.call(nodes);
+                    arr.forEach((el, i) => {
+                        el.classList.remove(cls); void el.offsetWidth;
+                        el.style.animationDelay = (i * 0.045).toFixed(3) + 's';
+                        el.classList.add(cls);
+                    });
+                }
+            };
+        })();
+        // التشغيل بعد جاهزية الصفحة
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => FX.init());
+        } else { FX.init(); }
+
         function showToast(msg, ms) {
             try {
                 if (!njdToastEl) {
@@ -5324,7 +5807,13 @@
             const el = document.getElementById('displayClueWord');
             if (!el) return;
             const txt = (word && String(word).trim()) ? String(word).trim() : 'تلميح';
+            const changed = el.innerText !== txt && txt !== 'تلميح';
             el.innerText = txt;
+            // حركة وصول التلميحة الجديدة فقط، لا مع كل إعادة رسم (الجولة 46)
+            if (changed && !FX.reduce()) {
+                el.classList.remove('clue-arrive'); void el.offsetWidth;
+                el.classList.add('clue-arrive');
+            }
             // أطول كلمة مفردة تحدّد الحد الأدنى للحجم، والطول الكلي يحدّد الباقي
             const words = txt.split(/\s+/).filter(Boolean);
             const longest = words.reduce((m, w) => Math.max(m, w.length), 0);
@@ -5337,6 +5826,11 @@
 
         function updateTurnUI() {
             document.querySelectorAll('.team-box').forEach(b => b.classList.remove('active-turn-box'));
+            // هالة جانبية بلون الفريق صاحب الدور (الجولة 46)
+            try {
+                FX.aura(gameStartedFlag && currentTurn
+                    ? (String(currentTurn).indexOf('red') === 0 ? 'red' : 'blue') : null);
+            } catch (e) {}
             if (isSiteOwner) {
                 // المالك يرى صندوق الدور النشط فقط بدون أدوات اللعب
                 const t = currentTurn;
@@ -5520,6 +6014,14 @@
                 let redLeft = redWordsLeft; let blueLeft = blueWordsLeft;
 
                 const guessedWord = (data.words && data.words[index]) || '';
+                // تأثير بصري بلون النتيجة من مكان البطاقة نفسها (الجولة 46)
+                try {
+                    const fxc = color === 'word-red' ? 'rgba(224,34,34,.85)'
+                              : color === 'word-blue' ? 'rgba(18,115,204,.85)'
+                              : color === 'word-black' ? 'rgba(0,0,0,.95)'
+                              : 'rgba(198,198,198,.8)';
+                    FX.shockAt(card, fxc);
+                } catch (e) {}
                 if (color === `word-${myTeam}`) {
                     SFX.correct();
                     logRoundEvent('guess', `${currentPlayer.name} خمّن «${guessedWord}» — صحيحة ✔`, myTeam);
@@ -5528,6 +6030,7 @@
                     if (checkWinLocal(redLeft, blueLeft, myTeam)) return;
                 } else if (color === `word-${enemyTeam}`) {
                     SFX.wrong();
+                    FX.flash(enemyTeam === 'red' ? '#e02222' : '#1273cc');
                     logRoundEvent('guess', `${currentPlayer.name} خمّن «${guessedWord}» — لفريق الخصم ✘`, myTeam);
                     if (enemyTeam === 'red') redLeft--; else blueLeft--;
                     STATE_REF.update({ redWordsLeft: redLeft, blueWordsLeft: blueLeft });
@@ -5542,6 +6045,7 @@
                     endGuesserTurn();
                 } else if (color === 'word-black') {
                     SFX.wrong();
+                    FX.shake(); FX.flash('#000000');
                     logRoundEvent('guess', `${currentPlayer.name} كشف الكلمة السوداء «${guessedWord}» 💀`, myTeam);
                     const winningTeam = enemyTeam; let rL = redLeft, bL = blueLeft;
                     if (winningTeam === 'red') rL--; else bL--;
@@ -5593,6 +6097,12 @@
         function showVictory(winningTeam, isBlackWord = false, bySurrender = false) {
             SFX.win();
             launchConfetti(winningTeam);   // احتفال قصير يزيل نفسه تلقائياً
+            // احتفال الجولة 46: نجوم متساقطة + ومضة + موجة من مركز الشاشة
+            FX.stars(30);
+            FX.flash(winningTeam === 'red' ? '#e02222' : '#1273cc');
+            FX.shock(window.innerWidth / 2, window.innerHeight / 2,
+                     winningTeam === 'red' ? 'rgba(224,34,34,.7)' : 'rgba(18,115,204,.7)');
+            FX.aura(null); FX.danger(false);
             stopTurnTimer(); timerTurnRef = '';
             recordWin(winningTeam, bySurrender ? 'surrender' : (isBlackWord ? 'black' : 'normal'));
             const overlay = document.getElementById('victoryOverlay'); const text = document.getElementById('victoryText');
