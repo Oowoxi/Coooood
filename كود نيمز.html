@@ -6263,10 +6263,33 @@
             }
         }
 
+        // مفتاح الدور الجاري كما يراه *أي* لاعب.
+        // submitClue تعمل على جهاز الكاتب وحده، فالحزّار — وهو من يضغط
+        // البطاقات — لا يملك currentRoundKey. لذلك نشتقّه من السجل:
+        // أحدث دور غير ملغى. بغير هذا لا تُسجَّل أي إجابة، فيصير إلغاء
+        // الدور بلا أثر (لا تبديل كلمات ولا انقلاب مربعات).
+        function activeRoundKey() {
+            // مفتاحي المحلّي أولاً (الكاتب)، وهو صالح ما لم يكن ملغى.
+            // نقبله أيضاً إن لم يصل السجل بعد، فلا نفقد إجابة بسبب تأخّر الشبكة.
+            if (currentRoundKey) {
+                const mine = roundsData && roundsData[currentRoundKey];
+                if (!mine || !mine.cancelled) return currentRoundKey;
+            }
+            let bestKey = null, bestTs = -1;
+            for (const k in (roundsData || {})) {
+                const r = roundsData[k];
+                if (!r || r.cancelled) continue;
+                const ts = r.ts || 0;
+                if (ts >= bestTs) { bestTs = ts; bestKey = k; }
+            }
+            return bestKey;
+        }
+
         // يسجّل تخمينًا داخل الدور الجاري ليستطيع المالك التراجع عنه لاحقاً
         function recordGuess(index, word, color, team, result) {
-            if (!ROUNDS_REF || !currentRoundKey) return;
-            ROUNDS_REF.child(currentRoundKey).child('guesses').push({
+            const key = activeRoundKey();
+            if (!ROUNDS_REF || !key) return;
+            ROUNDS_REF.child(key).child('guesses').push({
                 index: index, word: word || '', color: color || '',
                 team: team || '', result: result || '',
                 by: currentPlayer.name || '', avatar: currentPlayer.avatar || '',
