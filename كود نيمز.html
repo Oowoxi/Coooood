@@ -495,6 +495,8 @@
         .player-card { display: flex; flex-direction: column; align-items: center; gap: 5px; position: relative; }
         .player-avatar { width: 44px; height: 44px; border-radius: 50%; border: 2px solid var(--silver); object-fit: cover; }
         .player-name-label { font-size: 11px; color: #fff; font-weight: 900; background: rgba(0,0,0,0.6); padding: 1px 6px; border-radius: 6px; }
+        .njd-ic { display: inline-block; vertical-align: -0.16em; flex: none; }
+        .btn-ic { display: inline-flex; align-items: center; justify-content: center; }
         /* ===== تاج المالك (مرسوم SVG، ليس إيموجي) =====
            مقاس ليجلس على أفتار 44px: عرضه 26px تقريباً = 60% من قطر الأفتار،
            وقاعدته منحنية بنفس انحناء الدائرة فيبدو موضوعاً عليها لا طافياً فوقها. */
@@ -1443,7 +1445,7 @@
 
     <div id="chatOverlayModal" class="chat-modal-overlay">
         <div class="chat-modal-box">
-            <button class="close-chat-btn" onclick="closeChatWindow()">✖</button>
+            <button class="close-chat-btn" onclick="closeChatWindow()" aria-label="إغلاق"><svg class="njd-ic" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg></button>
             <h3 id="chatModalTitle" class="chat-title">الدردشة</h3>
             
             <div id="chatMessagesArea" class="chat-messages-container"></div>
@@ -1502,7 +1504,7 @@
 
     <div class="settings-overlay" id="settingsOverlay">
         <div class="settings-box">
-            <h3>⚙️ الإعدادات</h3>
+            <h3>الإعدادات</h3>
             <div class="settings-slider-group">
                 <label>حجم بطاقات اللعب <span class="value-display" id="cardScaleDisplay">111%</span></label>
                 <input type="range" id="cardScaleSlider" min="60" max="140" value="111" step="1">
@@ -1517,11 +1519,11 @@
             </div>
             <div class="settings-slider-group">
                 <label>الصوت</label>
-                <button class="sound-setting-btn" id="soundSettingBtn" onclick="toggleSound()">🔊 الصوت مفعّل</button>
+                <button class="sound-setting-btn" id="soundSettingBtn" onclick="toggleSound()"><span class="btn-ic" data-ic="sound"></span> الصوت مفعّل</button>
             </div>
             <div class="settings-actions">
-                <button class="save-scale-btn" onclick="saveSettings()">💾 تثبيت</button>
-                <button class="reset-settings-btn" onclick="resetSettings()">↺ الإعدادات الافتراضية</button>
+                <button class="save-scale-btn" onclick="saveSettings()"><span class="btn-ic" data-ic="save"></span> تثبيت</button>
+                <button class="reset-settings-btn" onclick="resetSettings()"><span class="btn-ic" data-ic="reset"></span> الإعدادات الافتراضية</button>
                 <button class="surrender-in-settings" id="surrenderSettingsBtn" style="display:none;" onclick="surrenderGame()">انسحاب</button>
                 <button class="close-settings" onclick="closeSettings()">إغلاق</button>
             </div>
@@ -1618,7 +1620,7 @@
 
     <div id="nameScreen">
         <div class="top-controls">
-            <button class="icon-btn" onclick="toggleFullScreen()">⛶ ملء الشاشة</button>
+            <button class="icon-btn" onclick="toggleFullScreen()"><span class="btn-ic" data-ic="expand"></span> ملء الشاشة</button>
         </div>
         <div class="brand-logo">
             <span class="brand-njd">NJD</span>
@@ -1640,7 +1642,7 @@
         <div>
             <button class="owner-login-btn" onclick="openOwnerLogin()">دخول الملاك</button>
         </div>
-        <div class="owner-mode-banner" id="ownerModeBanner">👑 أنت الآن في وضع المالك (مشاهد مخفي)</div>
+        <div class="owner-mode-banner" id="ownerModeBanner">أنت الآن في وضع المالك (مشاهد مخفي)</div>
     </div>
 
     <!-- شريط زمن الدور: عنصر واحد يتقلّص بـ transform (بلا إعادة تخطيط) -->
@@ -1678,7 +1680,7 @@
 
     <div class="custom-alert-overlay" id="roundLogModal">
         <div class="custom-alert-box" style="max-width: 520px;">
-            <h3 style="color:var(--silver); margin-top:0;">📜 سجل الجولة</h3>
+            <h3 style="color:var(--silver); margin-top:0;">سجل الجولة</h3>
             <div id="roundLogList" style="max-height: 55vh; overflow-y: auto; text-align: right; margin: 10px 0;"></div>
             <button onclick="closeRoundLog()" style="background: var(--surface-4); border-radius: 10px; padding: 8px 25px; font-family:'Cairo'; font-weight:bold; cursor:pointer; color:white; border:none; font-size:15px;">إغلاق</button>
         </div>
@@ -1686,7 +1688,7 @@
 
     <div class="custom-alert-overlay" id="winsModal">
         <div class="custom-alert-box" style="max-width: 560px;">
-            <h3 style="color:var(--silver); margin-top:0;">🏆 كشف الفوزات</h3>
+            <h3 style="color:var(--silver); margin-top:0;">كشف الفوزات</h3>
             <div class="wins-list" id="winsList"></div>
             <button onclick="closeWinsModal()" style="background: var(--surface-4); border-radius: 10px; padding: 8px 25px; font-family:'Cairo'; font-weight:bold; cursor:pointer; color:white; border:none; font-size:15px;">إغلاق</button>
         </div>
@@ -1707,7 +1709,7 @@
     <div id="roomsScreen">
         <div class="brand-mini"><span class="brand-njd-mini">NJD</span> <span class="brand-mini-code">CODE NAMES</span></div>
         <div class="top-controls">
-            <button class="icon-btn" onclick="toggleFullScreen()">⛶ ملء الشاشة</button>
+            <button class="icon-btn" onclick="toggleFullScreen()"><span class="btn-ic" data-ic="expand"></span> ملء الشاشة</button>
         </div>
         <h2 id="roomsTitle" style="font-size: 24px; margin: 4px 0 12px;">اختر نوع الغرف</h2>
 
@@ -1729,13 +1731,13 @@
 
         <!-- قائمة غرف النوع المختار -->
         <div id="roomsListView" style="display:none;">
-            <button class="back-modes-btn" onclick="backToModes()">↩ رجوع لأنواع الغرف</button>
+            <button class="back-modes-btn" onclick="backToModes()"><span class="btn-ic" data-ic="back"></span> رجوع لأنواع الغرف</button>
             <div id="roomsGrid" class="rooms-container"></div>
         </div>
 
         <div class="rooms-bottom-actions">
             <button class="enter-btn" onclick="showCreateRoomModal()">إنشاء غرفة جديدة</button>
-            <button class="wins-btn" id="winsRevealBtn" style="display:none;" onclick="openWinsModal()">🏆 كشف الفوزات</button>
+            <button class="wins-btn" id="winsRevealBtn" style="display:none;" onclick="openWinsModal()">كشف الفوزات</button>
         </div>
     </div>
 
@@ -1743,7 +1745,7 @@
         <div class="top-controls">
             <span id="countdownText">3</span>
             <button class="settings-btn-text" onclick="openSettings(false)">إعدادات</button>
-            <button class="icon-btn" onclick="toggleFullScreen()">⛶ ملء الشاشة</button>
+            <button class="icon-btn" onclick="toggleFullScreen()"><span class="btn-ic" data-ic="expand"></span> ملء الشاشة</button>
             <button class="icon-btn" style="background:var(--danger-dark); color:white; border-color:var(--danger-br);" onclick="exitRoom()">خروج</button>
         </div>
 
@@ -1776,7 +1778,7 @@
     </div>
 
     <div id="gameScreen">
-        <button class="icon-btn mini-fullscreen-btn" onclick="toggleFullScreen()">⛶</button>
+        <button class="icon-btn mini-fullscreen-btn" onclick="toggleFullScreen()" aria-label="ملء الشاشة"><span class="btn-ic" data-ic="expand"></span></button>
         
         <div style="position: absolute; top: 12px; left: 12px; z-index: 50; display: flex; gap: 10px;">
             <button class="settings-btn-text" onclick="openSettings(true)">إعدادات</button>
@@ -1789,8 +1791,8 @@
                 <span id="notif-private-game" class="chat-notif"></span>
             </button>
             <button class="icon-btn" id="ownerExitGameBtn" style="display:none; background:var(--danger-dark); color:white; border-color:var(--danger-br);" onclick="exitRoom()">خروج</button>
-            <span class="turn-timer" id="turnTimer" style="display:none;">⏱ 90</span>
-            <button class="icon-btn log-btn" onclick="openRoundLog()" title="سجل الجولة">📜 السجل <span class="log-badge" id="logCountBadge">0</span></button>
+            <span class="turn-timer" id="turnTimer" style="display:none;"><span class="btn-ic" data-ic="clock" data-sz="14"></span> 90</span>
+            <button class="icon-btn log-btn" onclick="openRoundLog()" title="سجل الجولة"><span class="btn-ic" data-ic="scroll"></span> السجل <span class="log-badge" id="logCountBadge">0</span></button>
             <button class="icon-btn admin-btn" id="cancelRoundBtn" style="display:none;" onclick="openRoundsAdmin()" title="إلغاء دور ونقاطه">الغِ الدور ونقاطه</button>
             <button class="icon-btn admin-btn" id="skipTurnBtn" style="display:none;" onclick="openSkipAdmin()" title="حرمان فريق من دور">حرمان دور</button>
         </div>
@@ -1970,7 +1972,7 @@
             soundEnabled = !soundEnabled;
             try { localStorage.setItem('cn_sound', soundEnabled ? 'on' : 'off'); } catch (e) {}
             const b = document.getElementById('soundToggleBtn');
-            if (b) b.innerText = soundEnabled ? '🔊' : '🔇';
+            if (b) b.innerHTML = ICON(soundEnabled ? 'sound' : 'mute', 17);
             updateSoundBtnUI();
             if (soundEnabled) SFX.tick();
         }
@@ -1978,7 +1980,7 @@
         function updateSoundBtnUI() {
             const sb = document.getElementById('soundSettingBtn');
             if (!sb) return;
-            sb.innerText = soundEnabled ? '🔊 الصوت مفعّل' : '🔇 الصوت مكتوم';
+            sb.innerHTML = ICON(soundEnabled ? 'sound' : 'mute', 15) + (soundEnabled ? ' الصوت مفعّل' : ' الصوت مكتوم');
             if (soundEnabled) sb.classList.remove('sound-off'); else sb.classList.add('sound-off');
         }
 
@@ -2082,7 +2084,7 @@
             isSiteOwner = true;
             closeOwnerLogin();
             document.getElementById('ownerModeBanner').style.display = 'block';
-            showAlert('تم تفعيل وضع المالك ✓ تدخل الغرف كمشاهد مخفي');
+            showAlert('تم تفعيل وضع المالك، تدخل الغرف كمشاهد مخفي');
         }
         // ===== مؤقت الدور: يمنع تعطيل اللعبة من لاعب غائب =====
         const TURN_SECONDS = 90;
@@ -2121,7 +2123,7 @@
 
             const left = Math.max(0, Math.ceil((turnDeadline - Date.now()) / 1000));
             if (el) {
-                el.innerText = '⏱ ' + left;
+                el.innerHTML = ICON('clock', 14) + ' ' + left;
                 if (left <= 10) el.classList.add('timer-danger'); else el.classList.remove('timer-danger');
             }
             updateTurnProgress(left, TURN_SECONDS);   // شريط الزمن: نفس النبضة، بلا مؤقّت إضافي
@@ -2205,7 +2207,7 @@
                 list.innerHTML = roundLog.slice().reverse().map(e => {
                     const t = new Date(e.ts).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
                     const cls = e.team === 'red' ? 'log-red' : (e.team === 'blue' ? 'log-blue' : '');
-                    const icon = e.kind === 'clue' ? '💡' : (e.kind === 'guess' ? '🎯' : 'ℹ️');
+                    const icon = ICON(e.kind === 'clue' ? 'bulb' : (e.kind === 'guess' ? 'target' : 'info'), 14);
                     return `<div class="log-row ${cls}"><span class="log-icon">${icon}</span>
                             <span class="log-text">${escapeHtml(e.text)}</span>
                             <span class="log-time">${t}</span></div>`;
@@ -3196,10 +3198,10 @@
                 const safeId = escapeAttr(rId);
                 const safeName = escapeHtml(room.name);
                 const deleteBtn = isSiteOwner
-                    ? `<button class="delete-room-btn" onclick="deleteRoomCompletely(event, '${safeId}')">🗑 حذف</button>`
+                    ? `<button class="delete-room-btn" onclick="deleteRoomCompletely(event, '${safeId}')">${ICON('trash', 13)} حذف</button>`
                     : '';
                 const ttlLabel = roomTimeLeftLabel(room);
-                const ttlHtml = ttlLabel ? `<div class="room-ttl">⏳ ${escapeHtml(ttlLabel)}</div>` : '';
+                const ttlHtml = ttlLabel ? `<div class="room-ttl">${ICON('hour', 12)} ${escapeHtml(ttlLabel)}</div>` : '';
                 container.innerHTML += `
                     <div class="room-card ${isFull && !isSiteOwner ? 'full-room' : ''}" onclick="attemptJoinRoom('${safeId}')">
                         <div class="room-title" title="${safeName}">${safeName}</div>
@@ -3243,7 +3245,7 @@
             db.ref(`/rooms/${rId}/game/roomDeleted`).set(true).catch(() => {});
             setTimeout(() => {
                 ROOMS_REF.child(rId).remove()
-                    .then(() => showAlert('تم حذف الغرفة نهائياً ✓'))
+                    .then(() => showAlert('تم حذف الغرفة نهائياً'))
                     .catch(err => showAlert('تعذر حذف الغرفة: ' + err.message));
             }, 600);
         }
@@ -3263,7 +3265,7 @@
                     const when = r.ts ? new Date(r.ts).toLocaleString('ar-EG') : '';
                     const extra = r.reason === 'black' ? ' (بالكلمة السوداء)' : (r.reason === 'surrender' ? ' (انسحاب)' : '');
                     return `<div class="win-row">
-                        <span class="win-side">${w}</span> ← انتصروا على ← <span class="lose-side">${l}</span>${extra}
+                        <span class="win-side">${w}</span> انتصروا على <span class="lose-side">${l}</span>${extra}
                         <span class="win-meta">${escapeHtml(r.room || '')} • ${when}</span>
                     </div>`;
                 }).join('');
@@ -4619,7 +4621,7 @@
             localStorage.setItem('cardScale', document.getElementById('cardScaleSlider').value);
             localStorage.setItem('infoScale', document.getElementById('infoScaleSlider').value);
             localStorage.setItem('clueScale', document.getElementById('clueScaleSlider').value);
-            showAlert('تم حفظ الإعدادات بنجاح ✓');
+            showAlert('تم حفظ الإعدادات بنجاح');
         }
 
         function applyScales() {
@@ -5300,7 +5302,7 @@
             const safeAvatar = safeImgSrc(msg.avatar);
             const avatarHtml = safeAvatar
                 ? `<img src="${safeAvatar}" class="msg-avatar">`
-                : `<div class="msg-avatar" style="display:flex;align-items:center;justify-content:center;background:var(--surface-3);color:var(--silver-br);font-size:15px;">👑</div>`;
+                : `<div class="msg-avatar" style="display:flex;align-items:center;justify-content:center;background:var(--surface-3);color:var(--silver-br);">${CROWN_SVG()}</div>`;
 
             const msgDiv = document.createElement('div');
             msgDiv.className = `msg-row ${isMe ? 'my-msg' : ''}`;
@@ -5339,6 +5341,36 @@
                 timestamp: firebase.database.ServerValue.TIMESTAMP
             });
             input.value = '';
+        }
+
+        // أيقونات مرسومة (SVG) تحلّ محلّ الإيموجي: شكل ثابت لا يتغيّر
+        // باختلاف الجهاز أو نظام التشغيل، ويأخذ لون النص المحيط تلقائياً.
+        function ICON(name, size) {
+            const sz = size || 15;
+            const P = {
+                sound:  '<path d="M4 9.5v5h3.2L12 18.6V5.4L7.2 9.5H4z" fill="currentColor"/><path d="M14.6 8.4a4.6 4.6 0 010 7.2M16.9 6a7.8 7.8 0 010 12" stroke="currentColor" stroke-width="1.7" fill="none" stroke-linecap="round"/>',
+                mute:   '<path d="M4 9.5v5h3.2L12 18.6V5.4L7.2 9.5H4z" fill="currentColor"/><path d="M15.2 9.6l5 4.8M20.2 9.6l-5 4.8" stroke="currentColor" stroke-width="1.7" fill="none" stroke-linecap="round"/>',
+                save:   '<path d="M4.8 4.8h11l4 4v10.4H4.8V4.8z" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linejoin="round"/><path d="M8 4.8v5h6v-5M8 19.2v-5.4h8v5.4" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linejoin="round"/>',
+                reset:  '<path d="M19.4 12a7.4 7.4 0 11-2.4-5.5" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"/><path d="M19.6 3.6v4.2h-4.2" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
+                expand: '<path d="M4.5 9V4.5H9M15 4.5h4.5V9M19.5 15v4.5H15M9 19.5H4.5V15" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
+                scroll: '<path d="M6.4 4.6h11.2v14.8H6.4z" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linejoin="round"/><path d="M9 8.6h6M9 12h6M9 15.4h4" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/>',
+                back:   '<path d="M10 5.5L4.2 11.2 10 17M4.6 11.2h10.2a4.6 4.6 0 010 9.2h-1.4" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
+                trash:  '<path d="M5.5 6.6h13M9.6 6.6V4.4h4.8v2.2M7.2 6.6l.9 12.4h7.8l.9-12.4" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
+                clock:  '<circle cx="12" cy="12" r="8.2" stroke="currentColor" stroke-width="1.7" fill="none"/><path d="M12 7.2V12l3.2 2.2" stroke="currentColor" stroke-width="1.7" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
+                hour:   '<path d="M7 3.4h10M7 20.6h10M8 3.4c0 4.4 8 4.6 8 0M8 20.6c0-4.4 8-4.6 8 0" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
+                bulb:   '<path d="M12 3.4a5.8 5.8 0 00-3.4 10.5c.7.5 1.1 1.3 1.1 2.1h4.6c0-.8.4-1.6 1.1-2.1A5.8 5.8 0 0012 3.4z" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linejoin="round"/><path d="M10 18.6h4M10.6 20.8h2.8" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round"/>',
+                target: '<circle cx="12" cy="12" r="8.2" stroke="currentColor" stroke-width="1.6" fill="none"/><circle cx="12" cy="12" r="4.4" stroke="currentColor" stroke-width="1.6" fill="none"/><circle cx="12" cy="12" r="1.3" fill="currentColor"/>',
+                info:   '<circle cx="12" cy="12" r="8.2" stroke="currentColor" stroke-width="1.6" fill="none"/><path d="M12 10.8v5.6" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"/><circle cx="12" cy="7.9" r="1.15" fill="currentColor"/>'
+            };
+            return `<svg class="njd-ic" viewBox="0 0 24 24" width="${sz}" height="${sz}" aria-hidden="true" focusable="false">${P[name] || ''}</svg>`;
+        }
+        // يملأ كل <span class="btn-ic" data-ic="..."> بأيقونته المرسومة
+        function paintStaticIcons() {
+            document.querySelectorAll('.btn-ic[data-ic]').forEach(el => {
+                if (el.dataset.painted === '1') return;
+                el.innerHTML = ICON(el.dataset.ic, parseInt(el.dataset.sz || '15', 10));
+                el.dataset.painted = '1';
+            });
         }
 
         // تاج المالك: شكل مرسوم بثلاث قمم وقاعدة منحنية تتبع استدارة الأفتار.
@@ -6064,14 +6096,14 @@
                 const guessedWord = (data.words && data.words[index]) || '';
                 if (color === `word-${myTeam}`) {
                     SFX.correct();
-                    logRoundEvent('guess', `${currentPlayer.name} خمّن «${guessedWord}» — صحيحة ✔`, myTeam);
+                    logRoundEvent('guess', `${currentPlayer.name} خمّن «${guessedWord}» — صحيحة`, myTeam);
                     recordGuess(index, guessedWord, color, myTeam, 'صحيحة');
                     if (myTeam === 'red') redLeft--; else blueLeft--;
                     STATE_REF.update({ redWordsLeft: redLeft, blueWordsLeft: blueLeft });
                     if (checkWinLocal(redLeft, blueLeft, myTeam)) return;
                 } else if (color === `word-${enemyTeam}`) {
                     SFX.wrong();
-                    logRoundEvent('guess', `${currentPlayer.name} خمّن «${guessedWord}» — لفريق الخصم ✘`, myTeam);
+                    logRoundEvent('guess', `${currentPlayer.name} خمّن «${guessedWord}» — لفريق الخصم`, myTeam);
                     recordGuess(index, guessedWord, color, myTeam, 'للخصم');
                     markWrongCard(index);          // توضيح «إجابة خاطئة» تحت الكلمة
                     if (enemyTeam === 'red') redLeft--; else blueLeft--;
@@ -6080,7 +6112,7 @@
                     endGuesserTurn();
                 } else if (color === 'word-neutral') {
                     SFX.wrong();
-                    logRoundEvent('guess', `${currentPlayer.name} خمّن «${guessedWord}» — محايدة ➖`, myTeam);
+                    logRoundEvent('guess', `${currentPlayer.name} خمّن «${guessedWord}» — محايدة`, myTeam);
                     recordGuess(index, guessedWord, color, myTeam, 'محايدة');
                     const textSpan = document.getElementById(`word-text-${index}`);
                     textSpan.style.transition = 'opacity 0.3s'; textSpan.style.opacity = '0';
@@ -6088,7 +6120,7 @@
                     endGuesserTurn();
                 } else if (color === 'word-black') {
                     SFX.wrong();
-                    logRoundEvent('guess', `${currentPlayer.name} كشف الكلمة السوداء «${guessedWord}» 💀`, myTeam);
+                    logRoundEvent('guess', `${currentPlayer.name} كشف الكلمة السوداء «${guessedWord}»`, myTeam);
                     recordGuess(index, guessedWord, color, myTeam, 'سوداء');
                     const winningTeam = enemyTeam; let rL = redLeft, bL = blueLeft;
                     if (winningTeam === 'red') rL--; else bL--;
@@ -6198,7 +6230,7 @@
                             <span class="ra-team">${teamName}</span>
                             ${r.cancelled ? '<span class="ra-badge">مُلغى</span>' : ''}
                         </div>
-                        <div class="ra-clue">💡 «${escapeHtml(r.clue || '')}» × ${escapeHtml(String(r.num || ''))}
+                        <div class="ra-clue">${ICON('bulb', 13)} «${escapeHtml(r.clue || '')}» × ${escapeHtml(String(r.num || ''))}
                             <span class="ra-writer">— ${escapeHtml(r.writer || '')}</span></div>
                         <div class="ra-guesses">${chips}</div>
                         <div class="ra-foot">
@@ -6488,7 +6520,7 @@
             } catch (e) {}
             soundEnabled = true;
             const b = document.getElementById('soundToggleBtn');
-            if (b) b.innerText = '🔊';
+            if (b) b.innerHTML = ICON('sound', 17);
             updateSoundBtnUI();
             applyScales();
             showAlert('تم إرجاع الإعدادات إلى الوضع الافتراضي');
@@ -6522,6 +6554,7 @@
         }
 
         document.addEventListener('DOMContentLoaded', function() {
+            paintStaticIcons();   // يرسم أيقونات SVG بدل الإيموجي
             applyScales();
             loadProfile();
         });
