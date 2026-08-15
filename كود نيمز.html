@@ -1307,6 +1307,8 @@
             border-color: var(--pick-yellow) !important;
             color: var(--pick-yellow) !important;
             font-weight: 700;
+            /* صغير بحجم زر الشات فلا يزاحم أدوات اللعب */
+            padding: 4px 10px; font-size: 11px; border-radius: 8px;
         }
         .admin-btn:hover { filter: brightness(1.25); }
 
@@ -1423,6 +1425,27 @@
             animation: grantIn 0.9s cubic-bezier(0.34, 1.56, 0.64, 1) both;
             z-index: 3;
         }
+        /* نبضة تُعرّف الكاتب أن البطاقة صارت لفريقه: توهّج فقط بلا تغيير مقاس */
+        .word-card.grant-red {
+            animation: grantIn 0.9s cubic-bezier(0.34, 1.56, 0.64, 1) both,
+                       grantGlowRed 1.4s ease-out both;
+            z-index: 3;
+        }
+        .word-card.grant-blue {
+            animation: grantIn 0.9s cubic-bezier(0.34, 1.56, 0.64, 1) both,
+                       grantGlowBlue 1.4s ease-out both;
+            z-index: 3;
+        }
+        @keyframes grantGlowRed {
+            0%   { box-shadow: 0 0 0 0 rgba(224, 34, 34, 0); }
+            35%  { box-shadow: 0 0 22px 7px rgba(224, 34, 34, 0.85); }
+            100% { box-shadow: 0 0 0 0 rgba(224, 34, 34, 0); }
+        }
+        @keyframes grantGlowBlue {
+            0%   { box-shadow: 0 0 0 0 rgba(18, 115, 204, 0); }
+            35%  { box-shadow: 0 0 22px 7px rgba(18, 115, 204, 0.85); }
+            100% { box-shadow: 0 0 0 0 rgba(18, 115, 204, 0); }
+        }
         @keyframes grantIn {
             0%   { transform: scale(1)    translateY(0);    filter: brightness(1); }
             25%  { transform: scale(0.94) translateY(3px);  filter: brightness(0.7); }
@@ -1433,6 +1456,7 @@
 
         @media (prefers-reduced-motion: reduce) {
             .word-card.swap-out, .word-card.grant-in,
+            .word-card.grant-red, .word-card.grant-blue,
             .word-card.swap-out .word-text-box,
             .word-card.swap-out .doubt-names,
             .word-card.swap-out .wrong-tag,
@@ -1793,8 +1817,8 @@
             <button class="icon-btn" id="ownerExitGameBtn" style="display:none; background:var(--danger-dark); color:white; border-color:var(--danger-br);" onclick="exitRoom()">خروج</button>
             <span class="turn-timer" id="turnTimer" style="display:none;"><span class="btn-ic" data-ic="clock" data-sz="14"></span> 90</span>
             <button class="icon-btn log-btn" onclick="openRoundLog()" title="سجل الجولة"><span class="btn-ic" data-ic="scroll"></span> السجل <span class="log-badge" id="logCountBadge">0</span></button>
-            <button class="icon-btn admin-btn" id="cancelRoundBtn" style="display:none;" onclick="openRoundsAdmin()" title="إلغاء دور ونقاطه">الغِ الدور ونقاطه</button>
-            <button class="icon-btn admin-btn" id="skipTurnBtn" style="display:none;" onclick="openSkipAdmin()" title="حرمان فريق من دور">حرمان دور</button>
+            <button class="icon-btn admin-btn" id="cancelRoundBtn" style="display:none;" onclick="openRoundsAdmin()" title="إلغاء دور ونقاطه">إلغاء دور</button>
+            <button class="icon-btn admin-btn" id="skipTurnBtn" style="display:none;" onclick="openSkipAdmin()" title="حرمان فريق من دور">حرمان</button>
         </div>
         <div id="skipIndicator" class="skip-indicator" style="display:none;"></div>
 
@@ -2701,6 +2725,7 @@
             if (!pool || !pool.length) return null;
             const LIMIT = Math.min(pool.length, 300);   // عيّنة كافية والقائمة مخلوطة أصلاً
             const scored = [];
+            let anyLink = false;   // هل وُجدت كلمة مرتبطة فعلاً؟
             for (let n = 0; n < LIMIT; n++) {
                 const cand = pool[n];
                 let link = 0, conf = 0;
@@ -2714,12 +2739,37 @@
                 }
                 // بطاقة الفريق: كافئ الروابط وعاقب التشابه مع الخصم.
                 // البطاقة البيضاء: لا تلتصق بأحد حتى لا تصير فخاً مضلّلاً.
+                if (link > 0) anyLink = true;
                 const score = linked ? (link * 4 - conf * 3)
                                      : (-conf * 3 - Math.max(0, link - 1) * 2);
                 scored.push([score, cand]);
             }
+            // احتياط: بطاقة ملوّنة ولم تُسفر العيّنة عن أي كلمة مرتبطة؟
+            // امسح بقيّة القائمة بحثاً عن رابطة قبل أن نقبل كلمة بلا رابط.
+            if (linked && !anyLink && LIMIT < pool.length) {
+                for (let n = LIMIT; n < pool.length; n++) {
+                    const cand = pool[n];
+                    let link = 0, conf = 0;
+                    for (let i = 0; i < mates.length; i++) {
+                        const v = simOf(cand, mates[i]);
+                        if (v > 0 && v < 99) link += Math.min(v, 3);
+                    }
+                    if (!link) continue;
+                    for (let i = 0; i < rivals.length; i++) {
+                        const v = simOf(cand, rivals[i]);
+                        if (v > 0 && v < 99) conf += Math.min(v, 3);
+                    }
+                    scored.push([link * 4 - conf * 3, cand]);
+                    anyLink = true;
+                }
+            }
+            if (!scored.length) return pool[0] || null;   // لن يحدث عملياً، لكن لا نعلق أبداً
             scored.sort((a, b) => b[0] - a[0]);
-            const top = scored.slice(0, 8);   // تنويع: اختر عشوائياً من بين الأفضل
+            // تنويع: اختر عشوائياً من بين الأفضل، لكن لا تنزل عن أفضل درجة
+            // بفارق كبير — وإلا فازت كلمة بلا رابط على كلمة مرتبطة.
+            const best = scored[0][0];
+            let top = scored.filter(x => x[0] >= best - 2).slice(0, 8);
+            if (!top.length) top = [scored[0]];
             return top[Math.floor(Math.random() * top.length)][1];
         }
 
@@ -4992,13 +5042,24 @@
                 trackTimeout(() => {
                     const c = document.getElementById('card-' + it.i);
                     if (!c) return;
-                    c.classList.remove('swap-out', 'grant-in');
+                    c.classList.remove('swap-out', 'grant-in', 'grant-red', 'grant-blue');
                     void c.offsetWidth;                     // إعادة تشغيل الحركة
-                    c.classList.add(it.kind === 'swap' ? 'swap-out' : 'grant-in');
+                    if (it.kind === 'swap') {
+                        c.classList.add('swap-out');
+                    } else {
+                        // الكاتب (والمالك) يرى الألوان: أبرِز لون الفريق الذي
+                        // آلت إليه البطاقة ليعرف أنها صارت من كلماته.
+                        const col = (actualBoardColors && actualBoardColors[it.i]) || '';
+                        const seesColors = isSiteOwner ||
+                            (currentPlayer.currentRoleId && currentPlayer.currentRoleId.includes('Writer'));
+                        if (seesColors && !writerPeekActive && col === 'word-red')       c.classList.add('grant-red');
+                        else if (seesColors && !writerPeekActive && col === 'word-blue') c.classList.add('grant-blue');
+                        else c.classList.add('grant-in');
+                    }
                     trackTimeout(() => {
                         const c2 = document.getElementById('card-' + it.i);
-                        if (c2) c2.classList.remove('swap-out', 'grant-in');
-                    }, 1000);
+                        if (c2) c2.classList.remove('swap-out', 'grant-in', 'grant-red', 'grant-blue');
+                    }, 1500);
                 }, delay);
             });
             SFX.correct && SFX.correct();
@@ -6323,6 +6384,11 @@
                 };
                 // يسحب كلمة متناسقة ويشطبها من المخزون
                 const takeWord = (mates, rivals, linked) => {
+                    // نفد المخزون؟ أعِد ملأه بأي كلمة ليست على اللوحة الآن،
+                    // فلا تتوقّف اللعبة أبداً مهما كثُر الإلغاء.
+                    if (!fresh.length) {
+                        for (const cw of massiveWordsPool) if (!onBoard.has(cw)) fresh.push(cw);
+                    }
                     const nw = pickHarmoniousWord(fresh, mates, rivals, linked);
                     if (!nw) return null;
                     const at = fresh.indexOf(nw);
