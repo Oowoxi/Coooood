@@ -2722,6 +2722,10 @@
             let foundOrphans = false;
             for (const roleId in roles) {
                 const playerId = roles[roleId];
+                // لا تعتبر مقعدي يتيماً لمجرد أن نسخة اللاعبين لم تصلني بعد.
+                // شاشة الأدوار صارت تظهر فوراً، فقد أحجز دوري قبل أن يصل
+                // إشعار وجودي ضمن اللاعبين، فكان يُحذف بعد لحظة. (الجولة 44)
+                if (playerId && playerId === myPlayerId) continue;
                 if (playerId && !players[playerId]) {
                     updates[roleId] = null;
                     foundOrphans = true;
@@ -3005,11 +3009,42 @@
         // إظهار شاشة الغرفة دون انتظار الخادم. آمنة للاستدعاء أكثر من مرة.
         // لا تُظهر شاشة الأدوار إذا كانت اللعبة شغالة وقد نقلَنا مستمع الحالة
         // إلى شاشة اللعب، وإلا ظهرت الشاشتان فوق بعض.
+        // تعبئة مبدئية لحالة الغرفة من النسخة المخزّنة محلياً (allRoomsData).
+        // ليست بديلاً عن الخادم — مجرد عرض فوري يُستبدل بأول رد يصل.
+        function seedRoomStateFromCache(room) {
+            const g = (room && room.game) ? room.game : {};
+            gameState.players = (g.players && typeof g.players === 'object') ? Object.assign({}, g.players) : {};
+            gameState.roles   = (g.roles   && typeof g.roles   === 'object') ? Object.assign({}, g.roles)   : {};
+        }
+
         function showRoomUINow() {
             document.getElementById('roomsScreen').style.display = 'none';
             if (document.getElementById('gameScreen').style.display !== 'flex') {
                 document.getElementById('rolesScreen').style.display = 'flex';
             }
+            // ═══ ابنِ محتوى الغرفة فوراً (الجولة 44) ═══
+            // إظهار الشاشة وحده لا يكفي: مربعات الأدوار وقائمة اللاعبين والأزرار
+            // كانت تنتظر رحلتَي الخادم فتظهر الغرفة فارغة ثانية ونصف.
+            // مربعات الأدوار تعتمد على currentMode وحده وهو مضبوط الآن، فتُرسم
+            // فارغة فوراً ثم يملؤها مستمع الأدوار حين تصل البيانات.
+            buildRolesUI();
+            updateLobbyUI();
+            updateRoomButtons();
+        }
+
+        // إظهار/إخفاء أزرار الغرفة حسب ما نعرفه الآن، بلا انتظار الخادم.
+        // آمنة للاستدعاء مراراً؛ المستمعون يستدعونها مجدداً عند وصول الحقيقة.
+        function updateRoomButtons() {
+            const inRoom = !!CURRENT_ROOM_ID;
+            const leaveBtn = document.getElementById('leaveBtn');
+            const randomBtn = document.getElementById('randomTeamsBtn');
+            if (leaveBtn) leaveBtn.style.display = (inRoom && currentPlayer.currentRoleId) ? 'inline-block' : 'none';
+            if (randomBtn) {
+                const show = inRoom && !isSiteOwner && currentPlayer.isOwner &&
+                             !currentPlayer.currentRoleId && !gameStartedFlag;
+                randomBtn.style.display = show ? 'inline-block' : 'none';
+            }
+            updateKickBtnVisibility();
         }
 
         // فشل الدخول بعد أن أظهرنا الغرفة: أعِد اللاعب لقائمة الغرف بلا بقايا
@@ -3088,7 +3123,8 @@
                 currentPlayer.currentRoleId = null;
                 const specRef = SPECTATORS_REF.push();
                 mySpectatorId = specRef.key;
-                showRoomUINow();          // بلا انتظار الخادم (الجولة 43)
+                seedRoomStateFromCache(room);   // اعرض الشاغلين فوراً (الجولة 44)
+                showRoomUINow();                // بلا انتظار الخادم (الجولة 43)
                 specRef.set({ name: currentPlayer.name, ts: Date.now() }).then(() => {
                     specRef.onDisconnect().remove();
                     attachGameListeners();
@@ -3115,6 +3151,14 @@
             // كان التبديل ينتظر رحلتين متتاليتين للخادم (كتابة المقعد ثم قراءة
             // اللاعبين) فيبقى اللاعب على قائمة الغرف قرابة ثانية ونصف بعد ضغطه.
             // الشاشة لا تعتمد على نتيجة أي منهما، فنعرضها الآن ونكمل الباقي خلفها.
+            // توقّع مبدئي: الغرفة كانت خالية قبل دخولي، إذاً أنا مالكها. يؤكّده
+            // الخادم بعد لحظة، ولو خالفه صحّحه مستمع اللاعبين فوراً. (الجولة 44)
+            currentPlayer.isOwner = (pCount === 0);
+            currentPlayer.currentRoleId = null;
+            // نسخة الغرفة موجودة عندنا أصلاً من قائمة الغرف، فنعرض شاغليها
+            // الحقيقيين فوراً بدل شاشة فارغة، ثم يصحّحها الخادم بعد لحظة.
+            seedRoomStateFromCache(room);
+            gameState.players[myPlayerId] = playerData;
             showRoomUINow();
 
             newPlayerRef.set(playerData).then(() => {
@@ -3127,9 +3171,22 @@
                     if (keys.length === 1) {
                         // أنا أول لاعب: امسح أي بقايا من لعبة سابقة (لوحة/حالة/شات/أدوار)
                         currentPlayer.isOwner = true; PLAYERS_REF.child(myPlayerId).update({ isOwner: true });
+                        // صارت شاشة الأدوار تظهر فوراً، فقد يختار اللاعب دوره قبل
+                        // أن يصل هذا التنظيف فيمسحه معه. نلتقط الدور الآن، لأن
+                        // مسح الأدوار يوقظ مستمعها فيصفّر currentRoleId قبل أن
+                        // ينتهي التنظيف. (الجولة 44)
+                        const roleBeforePurge = currentPlayer.currentRoleId;
+                        const seatBeforePurge = myPlayerId;
                         purgeGameData(GAME_REF, true).then(() => {
                             STATE_REF.child('mode').set(currentMode);
                             COUNTDOWN_REF.set({ value: 3, isRunning: false });
+                            if (roleBeforePurge && seatBeforePurge && seatBeforePurge === myPlayerId &&
+                                CURRENT_ROOM_ID && ROLES_REF && !currentPlayer.currentRoleId) {
+                                currentPlayer.currentRoleId = roleBeforePurge;
+                                ROLES_REF.child(roleBeforePurge).set(seatBeforePurge).catch(() => {});
+                                PLAYERS_REF.child(seatBeforePurge).update({ currentRoleId: roleBeforePurge }).catch(() => {});
+                                updateRoomButtons();
+                            }
                         });
                     } else {
                         let ownerExists = false;
