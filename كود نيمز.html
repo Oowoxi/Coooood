@@ -1298,6 +1298,98 @@
         .log-time { color: var(--muted); font-size: 11px; }
         .log-icon { font-size: 15px; }
 
+
+        /* ═══════════ الجولة 54: صلاحيات المالك ═══════════ */
+        .admin-btn {
+            background: linear-gradient(180deg, #3a2f00, #241d00) !important;
+            border-color: var(--pick-yellow) !important;
+            color: var(--pick-yellow) !important;
+            font-weight: 700;
+        }
+        .admin-btn:hover { filter: brightness(1.25); }
+
+        /* شارة الحرمان الظاهرة للجميع */
+        .skip-indicator {
+            text-align: center; font-size: 13px; font-weight: 700;
+            padding: 4px 10px; margin: 2px auto 0; border-radius: 8px;
+            max-width: 340px; letter-spacing: .2px;
+            animation: skipPulse 2s ease-in-out infinite;
+        }
+        .skip-indicator.si-red  { background: rgba(224,34,34,.16);  color: #ff9a9a; border: 1px solid var(--red-base); }
+        .skip-indicator.si-blue { background: rgba(18,115,204,.16); color: #9ec9ff; border: 1px solid var(--blue-base); }
+        @keyframes skipPulse { 0%,100% { opacity: .78; } 50% { opacity: 1; } }
+
+        /* صفوف الأدوار في نافذة الإلغاء */
+        .ra-row {
+            background: var(--surface-2); border: 1px solid var(--line);
+            border-radius: 12px; padding: 10px 12px; margin-bottom: 9px;
+            border-right-width: 4px;
+        }
+        .ra-row.ra-red  { border-right-color: var(--red-base); }
+        .ra-row.ra-blue { border-right-color: var(--blue-base); }
+        .ra-row.ra-cancelled { opacity: .5; }
+        .ra-head { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+        .ra-num  { font-weight: 800; color: var(--text); font-size: 14px; }
+        .ra-team { font-size: 12px; color: var(--muted); }
+        .ra-badge {
+            margin-right: auto; font-size: 11px; font-weight: 700;
+            background: var(--danger); color: #fff; border-radius: 6px; padding: 2px 8px;
+        }
+        .ra-clue { font-size: 14px; color: var(--text); margin-bottom: 7px; }
+        .ra-writer { font-size: 12px; color: var(--muted); }
+        .ra-guesses { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 8px; }
+        .ra-chip {
+            font-size: 12px; padding: 3px 9px; border-radius: 7px;
+            border: 1px solid var(--line); background: var(--surface-3); color: var(--silver);
+        }
+        .ra-chip.ra-ok  { border-color: #2e7d32; color: #9be59f; background: rgba(46,125,50,.14); }
+        .ra-chip.ra-bad { border-color: var(--danger); color: #ff9a9a; background: rgba(217,43,43,.14); }
+        .ra-chip.ra-neu { border-color: var(--line-strong); color: var(--silver-dim); }
+        .ra-chip.ra-blk { border-color: #000; color: #ddd; background: #000; }
+        .ra-foot { display: flex; align-items: center; gap: 10px; }
+        .ra-score { font-size: 12px; color: var(--muted); }
+        .ra-btn {
+            margin-right: auto; background: var(--danger-dark, #8f0d0d); color: #fff;
+            border: 1px solid var(--danger); border-radius: 9px; padding: 6px 14px;
+            font-family: 'Cairo'; font-weight: 700; font-size: 13px; cursor: pointer;
+        }
+        .ra-btn:hover { filter: brightness(1.2); }
+        .ra-btn.ra-done { background: var(--surface-4); border-color: var(--line); color: var(--muted); cursor: default; }
+
+        /* أزرار اختيار الفريق المحروم */
+        .skip-team-btn {
+            border: none; border-radius: 10px; padding: 10px 18px; color: #fff;
+            font-family: 'Cairo'; font-weight: 800; font-size: 14px; cursor: pointer;
+        }
+        .skip-team-btn.st-red  { background: linear-gradient(180deg, var(--red-base), var(--red-dark)); }
+        .skip-team-btn.st-blue { background: linear-gradient(180deg, var(--blue-base), var(--blue-dark)); }
+        .skip-team-btn:hover { filter: brightness(1.15); }
+
+        /* زر الطرد النهائي داخل قائمة الطرد */
+        .kick-perma {
+            background: var(--void, #000) !important; color: #ff8a8a !important;
+            border: 1px solid var(--danger) !important; font-size: 12px !important;
+        }
+        .kick-perma:hover { filter: brightness(1.3); }
+
+        /* وسم «إجابة خاطئة» أسفل الكلمة داخل البطاقة */
+        .wrong-tag {
+            position: absolute; left: 0; right: 0; bottom: 4px;
+            text-align: center; font-size: 10px; font-weight: 800;
+            color: #fff; letter-spacing: .3px; pointer-events: none;
+            text-shadow: 0 1px 3px rgba(0,0,0,.9);
+            animation: wrongTagIn .35s ease-out both;
+        }
+        @keyframes wrongTagIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        /* شريط إعلان محايد (إلغاء دور) */
+        .turn-banner.banner-notice {
+            background: linear-gradient(90deg, rgba(245,197,24,.92), rgba(180,140,10,.92));
+            color: #1a1400;
+        }
+
     </style>
 </head>
 <body>
@@ -1319,9 +1411,38 @@
     <div class="custom-alert-overlay" id="kickModal">
         <div class="custom-alert-box" style="max-width: 460px;">
             <h3 style="color:var(--danger-br); margin-top:0;">طرد لاعب</h3>
-            <p style="font-size:14px; color:var(--silver-dim); margin:6px 0 12px;">المطرود لا يستطيع الدخول للغرفة لمدة دقيقة</p>
+            <p style="font-size:14px; color:var(--silver-dim); margin:6px 0 12px;">«طرد» يمنع الدخول دقيقة واحدة · «طرد نهائي» يمنعه حتى تفرغ الغرفة تماماً</p>
             <div id="kickList" style="max-height:50vh; overflow-y:auto; text-align:right; margin:10px 0;"></div>
             <button onclick="closeKickModal()" style="background:var(--surface-4); border-radius:10px; padding:8px 25px; font-family:'Cairo'; font-weight:bold; cursor:pointer; color:white; border:none; font-size:15px;">إغلاق</button>
+        </div>
+    </div>
+
+    <!-- نافذة إلغاء الأدوار (الجولة 54) -->
+    <div class="custom-alert-overlay" id="roundsAdminModal">
+        <div class="custom-alert-box" style="max-width: 560px;">
+            <h3 style="color:var(--pick-yellow); margin-top:0;">الأدوار الملعوبة</h3>
+            <p style="font-size:13px; color:var(--silver-dim); margin:6px 0 12px;">
+                إلغاء أي دور يُرجع كلماته المكشوفة ونقاطه — كأن الدور لم يُلعب</p>
+            <div id="roundsAdminList" style="max-height:56vh; overflow-y:auto; text-align:right; margin:10px 0;"></div>
+            <button onclick="closeRoundsAdmin()" style="background:var(--surface-4); border-radius:10px; padding:8px 25px; font-family:'Cairo'; font-weight:bold; cursor:pointer; color:white; border:none; font-size:15px;">إغلاق</button>
+        </div>
+    </div>
+
+    <!-- نافذة حرمان فريق من دور (الجولة 54) -->
+    <div class="custom-alert-overlay" id="skipAdminModal">
+        <div class="custom-alert-box" style="max-width: 420px;">
+            <h3 style="color:var(--pick-yellow); margin-top:0;">حرمان دور</h3>
+            <p style="font-size:13px; color:var(--silver-dim); margin:6px 0 10px;">
+                الفريق المحروم يفقد دوره القادم مرة واحدة، فيلعب الخصم مرتين متتاليتين</p>
+            <div id="skipCurrentInfo" style="margin:10px 0; font-size:14px;"></div>
+            <div style="display:flex; gap:10px; justify-content:center; margin:14px 0;">
+                <button class="skip-team-btn st-red" onclick="applySkip('red')">احرم الأحمر</button>
+                <button class="skip-team-btn st-blue" onclick="applySkip('blue')">احرم الأزرق</button>
+            </div>
+            <div style="display:flex; gap:10px; justify-content:center;">
+                <button onclick="clearSkip()" style="background:var(--surface-3); border-radius:10px; padding:8px 18px; font-family:'Cairo'; font-weight:bold; cursor:pointer; color:var(--silver); border:1px solid var(--line); font-size:14px;">إلغاء الحرمان</button>
+                <button onclick="closeSkipAdmin()" style="background:var(--surface-4); border-radius:10px; padding:8px 25px; font-family:'Cairo'; font-weight:bold; cursor:pointer; color:white; border:none; font-size:15px;">إغلاق</button>
+            </div>
         </div>
     </div>
 
@@ -1623,7 +1744,10 @@
             <button class="icon-btn" id="ownerExitGameBtn" style="display:none; background:var(--danger-dark); color:white; border-color:var(--danger-br);" onclick="exitRoom()">خروج</button>
             <span class="turn-timer" id="turnTimer" style="display:none;">⏱ 90</span>
             <button class="icon-btn log-btn" onclick="openRoundLog()" title="سجل الجولة">📜 السجل <span class="log-badge" id="logCountBadge">0</span></button>
+            <button class="icon-btn admin-btn" id="cancelRoundBtn" style="display:none;" onclick="openRoundsAdmin()" title="إلغاء دور ونقاطه">الغِ الدور ونقاطه</button>
+            <button class="icon-btn admin-btn" id="skipTurnBtn" style="display:none;" onclick="openSkipAdmin()" title="حرمان فريق من دور">حرمان دور</button>
         </div>
+        <div id="skipIndicator" class="skip-indicator" style="display:none;"></div>
 
         <div class="game-layout">
             <div class="team-row" style="margin-bottom: 2px;">
@@ -1732,6 +1856,15 @@
         let initialClueLoad = true;
 
         let CANCEL_REF = null;
+        // ═══ الجولة 54: صلاحيات المالك ═══
+        let ROUNDS_REF = null;        // game/rounds — سجل الأدوار على الخادم (يراه الجميع)
+        let SKIPS_REF = null;         // game/skips  — حرمان فريق من دور
+        let PERMABANS_REF = null;     // permaBans   — طرد نهائي حتى تفرغ الغرفة
+        let roundsData = {};          // نسخة محلية من سجل الأدوار
+        let skipsData = null;         // { team: 'red'|'blue', by: '', ts: 0 }
+        let lastCancelledRoundSeen = 0;   // آخر إلغاء عُرض لي (منعاً للتكرار)
+        let currentRoundKey = null;       // مفتاح الدور الجاري في سجل الخادم
+        let wrongGuesses = {};            // فهرس البطاقات التي كُشفت وكانت للخصم
         let cancelMessageShown = false;
         let roomJoinedAt = 0;
         let roomSessionId = 0;
@@ -1994,6 +2127,8 @@
             const who = turnAtFire.includes('Writer') ? 'الكاتب' : 'المتوقع';
             const teamAr = turnAtFire.includes('red') ? 'الأحمر' : 'الأزرق';
             logRoundEvent('info', `انتهى وقت ${who} ${teamAr} — انتقل الدور`, turnAtFire.includes('red') ? 'red' : 'blue');
+            // حرمان: يسري أيضاً عند انتهاء الوقت لا عند الإنهاء اليدوي فقط
+            { const sk = applySkipOnTurn(nextTurn); if (sk) nextTurn = sk; }
 
             clearAllDoubts();
             setAllConfirms(false);
@@ -2847,6 +2982,9 @@
             if (PENDING_DC_REF) PENDING_DC_REF.off();
             if (HEARTBEAT_REF) HEARTBEAT_REF.off();
             if (GAME_REF) { GAME_REF.child('kicked').off(); GAME_REF.child('bans').off(); }
+            if (ROUNDS_REF) ROUNDS_REF.off();
+            if (SKIPS_REF) SKIPS_REF.off();
+            roundsData = {}; skipsData = null; currentRoundKey = null; lastCancelledRoundSeen = 0;
             if (SPECTATORS_REF) SPECTATORS_REF.off();
             if (GAME_REF) GAME_REF.child('roomDeleted').off();
             gameListenersAttached = false;
@@ -3223,6 +3361,12 @@
                 }
             }
             const pCount = room.game && room.game.players ? Object.keys(room.game.players).length : 0;
+            // ═══ طرد نهائي (الجولة 54) ═══
+            // يبقى سارياً ما دام في الغرفة أحد؛ فإذا فرغت تماماً سقط عن الجميع.
+            if (!isSiteOwner && pCount > 0 && room.permaBans && myFingerprint()) {
+                const pb = room.permaBans[myFingerprint()];
+                if (pb) { showAlert('تم طردك نهائياً من هذه الغرفة من قبل المدير'); return; }
+            }
             // المالك مشاهد مخفي: لا يُحسب ضمن العدد ولا تمنعه الغرفة الممتلئة
             if (!isSiteOwner && pCount >= room.maxPlayers) { showAlert('الغرفة ممتلئة'); return; }
 
@@ -3248,6 +3392,9 @@
             COUNTDOWN_REF = GAME_REF.child('countdown');
             CHATS_REF = GAME_REF.child('chats');
             CANCEL_REF = GAME_REF.child('cancel');
+            ROUNDS_REF = GAME_REF.child('rounds');
+            SKIPS_REF  = GAME_REF.child('skips');
+            PERMABANS_REF = db.ref(`/rooms/${rId}/permaBans`);
             SPECTATORS_REF = GAME_REF.child('spectators');
             PENDING_DC_REF = GAME_REF.child('pendingDisconnect');
             DOUBTS_REF = GAME_REF.child('doubts');
@@ -3287,11 +3434,13 @@
             // دون تشغيل أي كود عميل ينظّف الشات.
             if (pCount === 0 && !isSiteOwner) {
                 GLOBAL_CHAT_REF.remove().catch(() => {});
+                // الغرفة فرغت تماماً: يسقط الطرد النهائي عن الجميع (الجولة 54)
+                db.ref(`/rooms/${rId}/permaBans`).remove().catch(() => {});
             }
 
             const newPlayerRef = PLAYERS_REF.push();
             myPlayerId = newPlayerRef.key;
-            const playerData = { name: currentPlayer.name, avatar: currentPlayer.avatar, isOwner: false, currentRoleId: null };
+            const playerData = { name: currentPlayer.name, avatar: currentPlayer.avatar, isOwner: false, currentRoleId: null, fp: myFingerprint() };
 
             // ═══ إظهار الغرفة فوراً (الجولة 43) ═══
             // كان التبديل ينتظر رحلتين متتاليتين للخادم (كتابة المقعد ثم قراءة
@@ -3496,8 +3645,46 @@
                 GAME_REF.child('kicked').child(myPlayerId).remove().catch(() => {});
                 const secs = Math.max(1, Math.ceil((until - Date.now()) / 1000));
                 kickedOut = true;
+                const forever = info.forever === true;
                 exitRoom();
-                showAlert(`تم طردك من الغرفة. يمكنك العودة بعد ${secs} ثانية`);
+                showAlert(forever
+                    ? 'تم طردك نهائياً من هذه الغرفة من قبل المدير، ولن تتمكن من العودة إليها حتى تفرغ من جميع اللاعبين.'
+                    : `تم طردك من الغرفة. يمكنك العودة بعد ${secs} ثانية`);
+            });
+
+            // ═══ الجولة 54: سجل الأدوار + الحرمان ═══
+            ROUNDS_REF.on('value', (snap) => {
+                roundsData = snap.val() || {};
+                // أعِد بناء فهرس الإجابات الخاطئة من السجل (يعمل للجميع وبعد التحديث)
+                wrongGuesses = {};
+                for (const k in roundsData) {
+                    const rr = roundsData[k];
+                    if (!rr || rr.cancelled || !rr.guesses) continue;
+                    for (const gk in rr.guesses) {
+                        const g = rr.guesses[gk];
+                        if (g && g.result === 'للخصم' && typeof g.index === 'number') wrongGuesses[g.index] = true;
+                    }
+                }
+                // أعلِم الجميع بأي دور أُلغي حديثاً (مرة واحدة لكل إلغاء)
+                let newest = null;
+                for (const k in roundsData) {
+                    const r = roundsData[k];
+                    if (r && r.cancelled && r.cancelledTs && r.cancelledTs > lastCancelledRoundSeen) {
+                        if (!newest || r.cancelledTs > newest.cancelledTs) newest = r;
+                    }
+                }
+                if (newest) {
+                    lastCancelledRoundSeen = newest.cancelledTs;
+                    const n = newest.cancelledNum || '';
+                    showNoticeBanner(`تم إلغاء الجولة ${toArabicOrdinal(n)} ونقاطها من قبل المدير`, 'banner-notice');
+                }
+                const m = document.getElementById('roundsAdminModal');
+                if (m && m.style.display === 'flex') renderRoundsAdmin();
+            });
+
+            SKIPS_REF.on('value', (snap) => {
+                skipsData = snap.val();
+                updateSkipIndicator();
             });
 
             HEARTBEAT_REF.on('value', (snap) => {
@@ -4120,6 +4307,7 @@
             hide('privateChatBtnWrapperGame');
             const exitBtn = document.getElementById('ownerExitGameBtn');
             if (exitBtn) exitBtn.style.display = 'inline-block';
+            updateAdminButtons();
             // المالك يرى ألوان البطاقات الحقيقية مثل الكاتب
             const grid = document.getElementById('cardsGrid');
             if (grid) grid.classList.add('writer-mode');
@@ -5200,6 +5388,7 @@
                         <img src="${safeImgSrc(p.avatar)}">
                         <span class="kick-name">${escapeHtml(p.name)}</span>
                         <button onclick="kickPlayer('${pid}')">طرد</button>
+                        <button class="kick-perma" onclick="kickPlayerForever('${pid}')">طرد نهائي</button>
                     </div>`;
             }
             if (!html) html = '<p style="color:var(--muted); text-align:center;">لا يوجد لاعبون آخرون</p>';
@@ -5231,6 +5420,42 @@
 
             closeKickModal();
             showAlert(`تم طرد ${target.name || 'اللاعب'} لمدة دقيقة`);
+        }
+
+        // ═══ طرد نهائي (الجولة 54) ═══
+        // يُسجَّل على مستوى الغرفة لا داخل /game، حتى لا يُمسح مع بيانات
+        // اللعبة عند نهايتها. يسقط تلقائياً حين تفرغ الغرفة من كل اللاعبين.
+        function kickPlayerForever(pid) {
+            if (isSiteOwner || !currentPlayer.isOwner || !pid || !GAME_REF) return;
+            if (pid === myPlayerId) return;
+            const target = gameState.players[pid];
+            if (!target) { closeKickModal(); return; }
+            const fp = target.fp || '';
+            const untilTs = Date.now() + KICK_BAN_MS;
+
+            if (fp && PERMABANS_REF) {
+                PERMABANS_REF.child(fp).set({
+                    name: target.name || '', ts: Date.now(),
+                    by: currentPlayer.name || ''
+                }).catch(() => {});
+            }
+            // احظره مؤقتاً أيضاً: لاعب قديم بلا بصمة يبقى ممنوعاً دقيقة على الأقل
+            GAME_REF.child('bans').child(pid).set({
+                name: target.name || '', until: untilTs, ts: Date.now()
+            }).catch(() => {});
+            GAME_REF.child('kicked').child(pid).set({
+                until: untilTs, ts: Date.now(), forever: true
+            }).catch(() => {});
+
+            if (target.currentRoleId && ROLES_REF) ROLES_REF.child(target.currentRoleId).remove().catch(() => {});
+            for (const rid in (gameState.roles || {})) {
+                if (gameState.roles[rid] === pid) ROLES_REF.child(rid).remove().catch(() => {});
+            }
+            if (HEARTBEAT_REF) HEARTBEAT_REF.child(pid).remove().catch(() => {});
+            trackTimeout(() => { PLAYERS_REF.child(pid).remove().catch(() => {}); }, 400);
+
+            closeKickModal();
+            showAlert(`تم طرد ${target.name || 'اللاعب'} نهائياً — لن يعود حتى تفرغ الغرفة`);
         }
 
         // هل أنا محظور من هذه الغرفة الآن؟
@@ -5432,18 +5657,48 @@
                 // أطول كلمة مفردة داخل البطاقة تحدد حجم الخط، فلا تُقطع أبداً
                 const longest = String(word).split(/\s+/).reduce((a, w) => Math.max(a, w.length), 0);
                 const lenClass = longest >= 11 ? ' len-xl' : longest >= 9 ? ' len-l' : longest >= 7 ? ' len-m' : '';
+                // بطاقة كُشفت وكانت لفريق الخصم = إجابة خاطئة (تبقى ظاهرة بعد إعادة الرسم)
+                const wrongTag = (rev && revBy && wrongGuesses[i] === true)
+                    ? '<div class="wrong-tag">إجابة خاطئة</div>' : '';
                 html += `
-                    <div class="word-card ${displayClass} ${revealedClass}${confirmClass}" id="card-${i}" onclick="toggleDoubt(${i})">
+                    <div class="word-card ${displayClass} ${revealedClass}${confirmClass}${wrongTag ? ' has-wrong' : ''}" id="card-${i}" onclick="toggleDoubt(${i})">
                         ${rev && revBy ? `<img src="${safeImgSrc(revBy)}" class="guesser-avatar-overlay">` : ''}
                         <div class="confirm-btn" onclick="confirmGuess(event, ${i})" style="display:${btnDisplay}"></div>
                         <span class="word-text-box${lenClass}" id="word-text-${i}">${escapeHtml(word)}</span>
                         <div class="doubt-names" id="doubt-${i}"></div>
+                        ${wrongTag}
                     </div>
                 `;
             }
             grid.innerHTML = html;
             if (isWriter) grid.classList.add('writer-mode'); else grid.classList.remove('writer-mode');
             if (freshDeal) playDealAnimation();   // توزيع أنيق لمرة واحدة عند بداية الجولة
+        }
+
+        // شريط إعلان عام بنفس أسلوب شريط الأدوار (الجولة 54)
+        function showNoticeBanner(text, theme) {
+            const overlay = document.getElementById('turnBannerOverlay');
+            const banner = document.getElementById('turnBannerText');
+            if (!overlay || !banner || !text) return;
+            banner.innerText = text;
+            banner.className = 'turn-banner ' + (theme || 'banner-notice');
+            overlay.style.display = 'flex';
+            banner.style.animation = 'none'; banner.offsetHeight;
+            banner.style.animation = 'slideBanner 4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards';
+            trackTimeout(() => { overlay.style.display = 'none'; }, 4000);
+        }
+
+        // ═══ توضيح «إجابة خاطئة» على البطاقة (الجولة 54) ═══
+        // تُكتب تحت الكلمة مع بقاء صورة من خمّنها، فيتضح للجميع ما جرى.
+        function markWrongCard(index) {
+            const card = document.getElementById(`card-${index}`);
+            if (!card) return;
+            if (card.querySelector('.wrong-tag')) return;
+            const tag = document.createElement('div');
+            tag.className = 'wrong-tag';
+            tag.innerText = 'إجابة خاطئة';
+            card.appendChild(tag);
+            card.classList.add('has-wrong');
         }
 
         function showTurnBanner(roleType) {
@@ -5477,6 +5732,21 @@
             if (total >= 34 || longest >= 15)      el.classList.add('clue-len-xl');
             else if (total >= 24 || longest >= 12) el.classList.add('clue-len-l');
             else if (total >= 15 || longest >= 9)  el.classList.add('clue-len-m');
+        }
+
+        // أزرار الإدارة تظهر لمدير الغرفة ولمالك الموقع فقط، وأثناء اللعب فقط
+        function updateAdminButtons() {
+            const show = (!!CURRENT_ROOM_ID) && (isSiteOwner || currentPlayer.isOwner) && !!gameStartedFlag;
+            const a = document.getElementById('cancelRoundBtn');
+            const b = document.getElementById('skipTurnBtn');
+            if (a) a.style.display = show ? 'inline-block' : 'none';
+            if (b) b.style.display = show ? 'inline-block' : 'none';
+            if (!show) {
+                const m1 = document.getElementById('roundsAdminModal');
+                const m2 = document.getElementById('skipAdminModal');
+                if (m1) m1.style.display = 'none';
+                if (m2) m2.style.display = 'none';
+            }
         }
 
         function updateTurnUI() {
@@ -5555,6 +5825,7 @@
                     document.querySelector('.end-turn-btn').style.display = 'inline-block';
                 } else { document.querySelector('.end-turn-btn').style.display = 'none'; }
             }
+            updateAdminButtons();
         }
 
         function toggleNumberPopup() {
@@ -5585,7 +5856,18 @@
             if (word === '' || num === '-') { showAlert('اكتب تلميح واختار رقم أولاً!'); return; }
 
             CLUE_REF.set({ word: word, num: num });
-            logRoundEvent('clue', `${currentPlayer.name} لمّح «${word}» × ${num}`, currentPlayer.currentRoleId && currentPlayer.currentRoleId.includes('red') ? 'red' : 'blue');
+            const myTeamC = currentPlayer.currentRoleId && currentPlayer.currentRoleId.includes('red') ? 'red' : 'blue';
+            logRoundEvent('clue', `${currentPlayer.name} لمّح «${word}» × ${num}`, myTeamC);
+            // سجّل الدور على الخادم ليراه المالك ويستطيع إلغاءه
+            if (ROUNDS_REF) {
+                const rr = ROUNDS_REF.push();
+                currentRoundKey = rr.key;
+                rr.set({
+                    team: myTeamC, clue: word, num: num,
+                    writer: currentPlayer.name || '', ts: Date.now(),
+                    cancelled: false, guesses: {}
+                }).catch(() => {});
+            }
             const turn = currentTurn; let nextTurn = '';
             if (turn === 'redWriter') nextTurn = 'redGuesser'; else if (turn === 'blueWriter') nextTurn = 'blueGuesser';
             if (nextTurn) { currentTurn = nextTurn; STATE_REF.update({ currentTurn: nextTurn }).then(() => { updateTurnUI(); }); }
@@ -5667,12 +5949,15 @@
                 if (color === `word-${myTeam}`) {
                     SFX.correct();
                     logRoundEvent('guess', `${currentPlayer.name} خمّن «${guessedWord}» — صحيحة ✔`, myTeam);
+                    recordGuess(index, guessedWord, color, myTeam, 'صحيحة');
                     if (myTeam === 'red') redLeft--; else blueLeft--;
                     STATE_REF.update({ redWordsLeft: redLeft, blueWordsLeft: blueLeft });
                     if (checkWinLocal(redLeft, blueLeft, myTeam)) return;
                 } else if (color === `word-${enemyTeam}`) {
                     SFX.wrong();
                     logRoundEvent('guess', `${currentPlayer.name} خمّن «${guessedWord}» — لفريق الخصم ✘`, myTeam);
+                    recordGuess(index, guessedWord, color, myTeam, 'للخصم');
+                    markWrongCard(index);          // توضيح «إجابة خاطئة» تحت الكلمة
                     if (enemyTeam === 'red') redLeft--; else blueLeft--;
                     STATE_REF.update({ redWordsLeft: redLeft, blueWordsLeft: blueLeft });
                     if (checkWinLocal(redLeft, blueLeft, enemyTeam)) return;
@@ -5680,6 +5965,7 @@
                 } else if (color === 'word-neutral') {
                     SFX.wrong();
                     logRoundEvent('guess', `${currentPlayer.name} خمّن «${guessedWord}» — محايدة ➖`, myTeam);
+                    recordGuess(index, guessedWord, color, myTeam, 'محايدة');
                     const textSpan = document.getElementById(`word-text-${index}`);
                     textSpan.style.transition = 'opacity 0.3s'; textSpan.style.opacity = '0';
                     setTimeout(() => { textSpan.innerText = 'إجابة محايدة'; textSpan.style.opacity = '1'; }, 300);
@@ -5687,6 +5973,7 @@
                 } else if (color === 'word-black') {
                     SFX.wrong();
                     logRoundEvent('guess', `${currentPlayer.name} كشف الكلمة السوداء «${guessedWord}» 💀`, myTeam);
+                    recordGuess(index, guessedWord, color, myTeam, 'سوداء');
                     const winningTeam = enemyTeam; let rL = redLeft, bL = blueLeft;
                     if (winningTeam === 'red') rL--; else bL--;
                     STATE_REF.update({ redWordsLeft: rL, blueWordsLeft: bL, winner: winningTeam, blackWordWinner: true });
@@ -5695,6 +5982,221 @@
                 // العلامات تبقى كما هي؛ لا تُمسح إلا بزر «إنهاء» أو انتهاء الوقت
                 setConfirmVisible(card.querySelector('.confirm-btn'), false);
             });
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        //  الجولة 54: صلاحيات المالك — إلغاء دور، حرمان دور، طرد نهائي
+        // ═══════════════════════════════════════════════════════════
+
+        // ═══ بصمة ثابتة للجهاز/اللاعب تُستخدم في الطرد النهائي ═══
+        // معرّف المقعد (myPlayerId) يتغيّر مع كل دخول، فلا يصلح للحظر.
+        // نولّد معرّفاً عشوائياً يُحفظ محلياً ويبقى ثابتاً عبر الجلسات.
+        function myFingerprint() {
+            try {
+                let fp = localStorage.getItem('cn_fp');
+                if (!fp) {
+                    fp = 'fp_' + Math.random().toString(36).slice(2, 11) + Date.now().toString(36).slice(-4);
+                    localStorage.setItem('cn_fp', fp);
+                }
+                return fp;
+            } catch (e) { return ''; }
+        }
+
+        // «الأولى، الثانية، الثالثة...» لنص الإعلان
+        function toArabicOrdinal(n) {
+            const names = ['', 'الأولى', 'الثانية', 'الثالثة', 'الرابعة', 'الخامسة',
+                           'السادسة', 'السابعة', 'الثامنة', 'التاسعة', 'العاشرة'];
+            const i = parseInt(n, 10);
+            return (i >= 1 && i <= 10) ? names[i] : ('رقم ' + (i || n));
+        }
+
+        // شارة صغيرة تُظهر للجميع أن فريقاً محروم من دوره القادم
+        function updateSkipIndicator() {
+            const el = document.getElementById('skipIndicator');
+            if (!el) return;
+            if (skipsData && skipsData.team) {
+                const tn = skipsData.team === 'red' ? 'الأحمر' : 'الأزرق';
+                el.innerText = `الفريق ${tn} محروم من دوره القادم`;
+                el.className = 'skip-indicator ' + (skipsData.team === 'red' ? 'si-red' : 'si-blue');
+                el.style.display = 'block';
+            } else {
+                el.style.display = 'none';
+            }
+        }
+
+        // يسجّل تخمينًا داخل الدور الجاري ليستطيع المالك التراجع عنه لاحقاً
+        function recordGuess(index, word, color, team, result) {
+            if (!ROUNDS_REF || !currentRoundKey) return;
+            ROUNDS_REF.child(currentRoundKey).child('guesses').push({
+                index: index, word: word || '', color: color || '',
+                team: team || '', result: result || '',
+                by: currentPlayer.name || '', avatar: currentPlayer.avatar || '',
+                ts: Date.now()
+            }).catch(() => {});
+        }
+
+        // ── نافذة إلغاء الدور ──
+        function openRoundsAdmin() {
+            if (!isSiteOwner && !currentPlayer.isOwner) {
+                showAlert('هذه الصلاحية لمدير الغرفة فقط'); return;
+            }
+            renderRoundsAdmin();
+            const m = document.getElementById('roundsAdminModal');
+            m.style.display = 'flex';
+            playEnterFx(m);
+        }
+        function closeRoundsAdmin() {
+            document.getElementById('roundsAdminModal').style.display = 'none';
+        }
+
+        function renderRoundsAdmin() {
+            const list = document.getElementById('roundsAdminList');
+            if (!list) return;
+            const keys = Object.keys(roundsData || {});
+            if (!keys.length) {
+                list.innerHTML = '<p style="color:var(--muted); text-align:center; padding:14px;">لم تُلعب أي أدوار بعد</p>';
+                return;
+            }
+            // الترتيب الزمني: الأقدم أولاً حتى تكون أرقام الأدوار ثابتة
+            keys.sort((a, b) => (roundsData[a].ts || 0) - (roundsData[b].ts || 0));
+            let html = '';
+            keys.forEach((k, i) => {
+                const r = roundsData[k];
+                const teamName = r.team === 'red' ? 'الأحمر' : 'الأزرق';
+                const teamCls  = r.team === 'red' ? 'ra-red' : 'ra-blue';
+                const gs = r.guesses ? Object.keys(r.guesses).map(g => r.guesses[g]) : [];
+                gs.sort((a, b) => (a.ts || 0) - (b.ts || 0));
+                const scored = gs.filter(g => g.result === 'صحيحة').length;
+                const chips = gs.length
+                    ? gs.map(g => {
+                        const cls = g.result === 'صحيحة' ? 'ra-ok'
+                                  : g.result === 'محايدة' ? 'ra-neu'
+                                  : g.result === 'سوداء'  ? 'ra-blk' : 'ra-bad';
+                        return `<span class="ra-chip ${cls}">${escapeHtml(g.word)}</span>`;
+                      }).join('')
+                    : '<span style="color:var(--muted); font-size:12px;">لا توجد تخمينات</span>';
+                html += `
+                    <div class="ra-row ${teamCls} ${r.cancelled ? 'ra-cancelled' : ''}">
+                        <div class="ra-head">
+                            <span class="ra-num">الدور ${i + 1}</span>
+                            <span class="ra-team">${teamName}</span>
+                            ${r.cancelled ? '<span class="ra-badge">مُلغى</span>' : ''}
+                        </div>
+                        <div class="ra-clue">💡 «${escapeHtml(r.clue || '')}» × ${escapeHtml(String(r.num || ''))}
+                            <span class="ra-writer">— ${escapeHtml(r.writer || '')}</span></div>
+                        <div class="ra-guesses">${chips}</div>
+                        <div class="ra-foot">
+                            <span class="ra-score">${scored} نقطة</span>
+                            ${r.cancelled
+                                ? '<button class="ra-btn ra-done" disabled>تم الإلغاء</button>'
+                                : `<button class="ra-btn" onclick="cancelRound('${k}', ${i + 1})">إلغاء الدور ونقاطه</button>`}
+                        </div>
+                    </div>`;
+            });
+            list.innerHTML = html;
+        }
+
+        // إلغاء دور: يرجع الكلمات المكشوفة فيه ويعيد النقاط — رجوع بالزمن
+        function cancelRound(key, displayNum) {
+            if (!isSiteOwner && !currentPlayer.isOwner) return;
+            const r = roundsData[key];
+            if (!r || r.cancelled) return;
+            if (!BOARD_REF || !STATE_REF) return;
+
+            BOARD_REF.once('value', (snap) => {
+                const data = snap.val();
+                if (!data) return;
+                const revealed   = data.revealed   || [];
+                const revealedBy = data.revealedBy || [];
+                let redLeft  = redWordsLeft;
+                let blueLeft = blueWordsLeft;
+
+                const gs = r.guesses ? Object.keys(r.guesses).map(g => r.guesses[g]) : [];
+                for (const g of gs) {
+                    if (typeof g.index !== 'number') continue;
+                    if (revealed[g.index] !== true) continue;
+                    revealed[g.index] = false;              // أعِد إخفاء الكلمة
+                    revealedBy[g.index] = '';
+                    // أعِد النقطة لصاحبها الأصلي
+                    if (g.color === 'word-red')  redLeft++;
+                    else if (g.color === 'word-blue') blueLeft++;
+                }
+                BOARD_REF.update({ revealed: revealed, revealedBy: revealedBy }).catch(() => {});
+                STATE_REF.update({
+                    redWordsLeft: Math.min(9, redLeft),
+                    blueWordsLeft: Math.min(8, blueLeft),
+                    // لو كان الدور قد أنهى اللعبة، أعِد اللعب
+                    winner: '', blackWordWinner: false, bySurrender: false
+                }).catch(() => {});
+
+                ROUNDS_REF.child(key).update({
+                    cancelled: true,
+                    cancelledBy: (isSiteOwner ? 'الإدارة' : (currentPlayer.name || 'المدير')),
+                    cancelledNum: displayNum,
+                    cancelledTs: Date.now()
+                }).catch(() => {});
+
+                logRoundEvent('info', `تم إلغاء الدور ${displayNum} ونقاطه من قبل المدير`, r.team);
+                renderRoundsAdmin();
+            });
+        }
+
+        // ── حرمان فريق من دوره القادم ──
+        function openSkipAdmin() {
+            if (!isSiteOwner && !currentPlayer.isOwner) {
+                showAlert('هذه الصلاحية لمدير الغرفة فقط'); return;
+            }
+            const cur = skipsData && skipsData.team ? skipsData.team : '';
+            document.getElementById('skipCurrentInfo').innerHTML = cur
+                ? `<span style="color:var(--pick-yellow);">الفريق ${cur === 'red' ? 'الأحمر' : 'الأزرق'} محروم من دوره القادم</span>`
+                : '<span style="color:var(--muted);">لا يوجد حرمان فعّال حالياً</span>';
+            const m = document.getElementById('skipAdminModal');
+            m.style.display = 'flex';
+            playEnterFx(m);
+        }
+        function closeSkipAdmin() {
+            document.getElementById('skipAdminModal').style.display = 'none';
+        }
+        function applySkip(team) {
+            if (!isSiteOwner && !currentPlayer.isOwner) return;
+            if (!SKIPS_REF) return;
+            SKIPS_REF.set({
+                team: team,
+                by: (isSiteOwner ? 'الإدارة' : (currentPlayer.name || 'المدير')),
+                ts: Date.now()
+            }).catch(() => {});
+            const tn = team === 'red' ? 'الأحمر' : 'الأزرق';
+            logRoundEvent('info', `حُرم الفريق ${tn} من دوره القادم`, team);
+            // لو كان الدور الآن عند الفريق المحروم، انقله فوراً للخصم
+            const curTeam = currentTurn && currentTurn.indexOf('red') === 0 ? 'red'
+                          : currentTurn && currentTurn.indexOf('blue') === 0 ? 'blue' : '';
+            if (curTeam === team && STATE_REF) {
+                const other = team === 'red' ? 'blue' : 'red';
+                SKIPS_REF.remove().catch(() => {});      // استُهلك الحرمان الآن
+                currentTurn = other + 'Writer';
+                STATE_REF.update({ currentTurn: currentTurn }).then(() => { updateTurnUI(); }).catch(() => {});
+            }
+            closeSkipAdmin();
+            showAlert(`تم حرمان الفريق ${tn} من دور واحد`);
+        }
+        function clearSkip() {
+            if (!isSiteOwner && !currentPlayer.isOwner) return;
+            if (SKIPS_REF) SKIPS_REF.remove().catch(() => {});
+            closeSkipAdmin();
+            showAlert('تم إلغاء الحرمان');
+        }
+
+        // يُستدعى عند كل انتقال دور: إن كان الفريق التالي محروماً فتخطَّه
+        // يُرجع الدور البديل، أو '' إن لم يكن هناك حرمان.
+        function applySkipOnTurn(nextTurn) {
+            if (!skipsData || !skipsData.team || !nextTurn) return '';
+            const nextTeam = nextTurn.indexOf('red') === 0 ? 'red' : 'blue';
+            if (nextTeam !== skipsData.team) return '';
+            const other = nextTeam === 'red' ? 'blue' : 'red';
+            if (SKIPS_REF) SKIPS_REF.remove().catch(() => {});   // حرمان جولة واحدة فقط
+            const tn = nextTeam === 'red' ? 'الأحمر' : 'الأزرق';
+            logRoundEvent('info', `تخطّى الفريق ${tn} دوره (حرمان من المدير)`, nextTeam);
+            return other + 'Writer';
         }
 
         function checkWinLocal(redLeft, blueLeft, lastScoredTeam) {
@@ -5718,6 +6220,8 @@
             setAllConfirms(false);
             const turn = currentTurn; let nextTurn = '';
             if (turn === 'redGuesser') nextTurn = 'blueWriter'; else if (turn === 'blueGuesser') nextTurn = 'redWriter';
+            // حرمان: لو كان الفريق التالي محروماً، يُتخطّى ويلعب الخصم مرتين
+            if (nextTurn) { const sk = applySkipOnTurn(nextTurn); if (sk) nextTurn = sk; }
             if (nextTurn) { currentTurn = nextTurn; STATE_REF.update({ currentTurn: nextTurn }).then(() => { updateTurnUI(); }); }
         }
 
