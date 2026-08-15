@@ -6286,8 +6286,34 @@
         }
 
         // يسجّل تخمينًا داخل الدور الجاري ليستطيع المالك التراجع عنه لاحقاً
+        // يفتح دوراً جديداً في السجل حين لا يوجد دور جارٍ.
+        // يحدث هذا بعد إلغاء الدور: كل الأدوار تصير ملغاة، فلولا هذا
+        // لضاعت كل إجابة تالية ولما وجد المالك دوراً ثانياً يلغيه —
+        // وهو ما كان يبدو للاعبين «جموداً» بعد أول إلغاء.
+        function openRoundFromClue(team) {
+            if (!ROUNDS_REF) return null;
+            let clue = '', num = '';
+            try {
+                const el = document.getElementById('displayClueWord');
+                clue = (el && (el.textContent || '').trim()) || '';
+                const nEl = document.getElementById('displayClueNum');
+                num = (nEl && (nEl.textContent || '').trim()) || '';
+            } catch (e) {}
+            const rr = ROUNDS_REF.push();
+            rr.set({
+                team: team || '', clue: clue, num: num,
+                writer: '', ts: Date.now(), cancelled: false, guesses: {}
+            });
+            currentRoundKey = rr.key;
+            if (!roundsData) roundsData = {};
+            roundsData[rr.key] = { team: team || '', clue: clue, num: num,
+                                   ts: Date.now(), cancelled: false, guesses: {} };
+            return rr.key;
+        }
+
         function recordGuess(index, word, color, team, result) {
-            const key = activeRoundKey();
+            let key = activeRoundKey();
+            if (!key) key = openRoundFromClue(team);   // لا دور جارٍ: افتح واحداً
             if (!ROUNDS_REF || !key) return;
             ROUNDS_REF.child(key).child('guesses').push({
                 index: index, word: word || '', color: color || '',
