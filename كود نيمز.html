@@ -619,16 +619,6 @@
             -webkit-tap-highlight-color: transparent;
         }
         .njd-chat-btn:hover { background: var(--silver); color: #000; }
-        /* زر التكبير/التصغير أبيض ساطع ليتميّز عن بقية الأزرار */
-        .njd-chat-btn.njd-chat-maximize {
-            background: #ffffff; color: #000;
-            border-color: #ffffff;
-            box-shadow: 0 0 10px rgba(255,255,255,.55);
-        }
-        .njd-chat-btn.njd-chat-maximize:hover {
-            background: #ffffff; color: #000;
-            box-shadow: 0 0 14px rgba(255,255,255,.85);
-        }
         .njd-chat-btn svg { width: 13px; height: 13px; display: block; }
         .njd-chat-close:hover { background: var(--danger); color: #fff; border-color: var(--danger-br); }
         .njd-chat-body { position: relative; flex: 1 1 auto; min-height: 0; overflow: hidden; background: var(--void); }
@@ -673,9 +663,11 @@
             position: absolute; width: 15px; height: 15px; left: -15px; bottom: -15px;
             cursor: nesw-resize; z-index: 5; touch-action: none;
             transition: left .12s ease, right .12s ease, top .12s ease, bottom .12s ease;
+            /* الخطّان صفراوان ليكونا واضحين على أي خلفية */
             background:
-              linear-gradient(45deg, transparent 46%, var(--line-strong) 46%, var(--line-strong) 56%, transparent 56%),
-              linear-gradient(45deg, transparent 68%, var(--line-strong) 68%, var(--line-strong) 78%, transparent 78%);
+              linear-gradient(45deg, transparent 46%, var(--pick-yellow) 46%, var(--pick-yellow) 56%, transparent 56%),
+              linear-gradient(45deg, transparent 68%, var(--pick-yellow) 68%, var(--pick-yellow) 78%, transparent 78%);
+            filter: drop-shadow(0 0 3px rgba(245,197,24,.65));
         }
         .njd-chat-window.njd-chat-max .njd-chat-resize { display: none; }
         /* أوضاع المقبض: يُضبط الصنف من njdPlaceGrip() حسب مكان النافذة،
@@ -1484,31 +1476,6 @@
             box-shadow: 0 14px 40px rgba(0,0,0,.6);
             transform: none;   /* حركتها الخاصة تتكفّل بالدخول */
         }
-        /* الشريط المحايد: رمادي مميّز عن الأصفر، بنفس القياسات */
-        .turn-banner.banner-neutral {
-            background: linear-gradient(135deg, rgba(206,206,206,.97), rgba(150,150,150,.97));
-            color: #141414;
-            width: auto; max-width: min(78vw, 460px);
-            margin: 0 auto; padding: 14px 26px;
-            font-size: clamp(15px, 3.1vw, 21px); line-height: 1.5;
-            border: 2px solid rgba(240,240,240,.95);
-            border-radius: 16px;
-            box-shadow: 0 14px 40px rgba(0,0,0,.6);
-            transform: none;
-        }
-        /* نبضة البطاقة المحايدة: حركة خالصة تلفت النظر قبل ظهور الشريط */
-        .word-card.neutral-pulse { animation: neutralPulse 1.15s ease-out both; z-index: 3; }
-        @keyframes neutralPulse {
-            0%   { transform: scale(1);    filter: brightness(1); }
-            22%  { transform: scale(1.07); filter: brightness(1.5); }
-            45%  { transform: scale(0.99); filter: brightness(1); }
-            68%  { transform: scale(1.04); filter: brightness(1.3); }
-            100% { transform: scale(1);    filter: brightness(1); }
-        }
-        @media (prefers-reduced-motion: reduce) {
-            .word-card.neutral-pulse { animation: none !important; }
-        }
-
         /* ظهور واختفاء لطيف في المكان — حركة خالصة بلا تغيير أبعاد */
         @keyframes noticePop {
             0%   { opacity: 0; transform: translateY(-18px) scale(0.90); }
@@ -2067,7 +2034,6 @@
         let lastCancelledRoundSeen = 0;   // آخر إلغاء عُرض لي (منعاً للتكرار)
         let currentRoundKey = null;       // مفتاح الدور الجاري في سجل الخادم
         let wrongGuesses = {};            // فهرس البطاقات التي كُشفت وكانت للخصم
-        let lastWrongKey = '';            // بصمة الفهرس، لتفادي إعادة رسم بلا داعٍ
         let lastSwapFxSeen = 0;           // آخر تأثير تبديل شُغّل (منعاً للتكرار)
         let cancelMessageShown = false;
         let roomJoinedAt = 0;
@@ -3699,7 +3665,6 @@
             PERMABANS_REF = db.ref(`/rooms/${rId}/permaBans`);
             SPECTATORS_REF = GAME_REF.child('spectators');
             PENDING_DC_REF = GAME_REF.child('pendingDisconnect');
-            NOTICE_REF = GAME_REF.child('notice');
             DOUBTS_REF = GAME_REF.child('doubts');
             HEARTBEAT_REF = GAME_REF.child('heartbeats');
             // الشات العام على مستوى الغرفة (خارج /game) فلا يتأثر بحذف بيانات اللعبة
@@ -3967,15 +3932,6 @@
                         if (g && g.result === 'للخصم' && typeof g.index === 'number') wrongGuesses[g.index] = true;
                     }
                 }
-                // الفهرس تغيّر: أعِد رسم اللوحة ليظهر الوسم عند *كل* اللاعبين
-                const wgKey = Object.keys(wrongGuesses).sort().join(',');
-                if (wgKey !== lastWrongKey) {
-                    lastWrongKey = wgKey;
-                    if (BOARD_REF) BOARD_REF.once('value', (bs) => {
-                        const bd = bs.val();
-                        if (bd && bd.words) renderBoard(bd.words, bd.colors, bd.revealed, bd.revealedBy);
-                    });
-                }
                 // أعلِم الجميع بأي دور أُلغي حديثاً (مرة واحدة لكل إلغاء).
                 // شرطان يمنعان ظهور إعلان قديم في شاشة الأدوار:
                 //   ١) أن يكون الإلغاء قد وقع بعد دخولي هذه الغرفة
@@ -3997,18 +3953,6 @@
                 }
                 const m = document.getElementById('roundsAdminModal');
                 if (m && m.style.display === 'flex') renderRoundsAdmin();
-            });
-
-            // إشعارات عامة (إجابة خاطئة / محايدة): يراها كل اللاعبين
-            NOTICE_REF.on('value', (snap) => {
-                const n = snap.val();
-                if (!n || !n.ts || n.ts <= lastNoticeSeen) return;
-                lastNoticeSeen = n.ts;
-                if (!gameStartedFlag) return;              // لا إشعارات في شاشة الأدوار
-                if (n.ts < roomJoinedAt) return;           // إشعار قديم سابق لدخولي
-                // أظهره بعد مهلة: يتّضح ما جرى على البطاقة أولاً
-                const wait = Math.max(0, (n.ts + NOTICE_DELAY_MS) - Date.now());
-                trackTimeout(() => showNoticeBanner(n.text, n.theme), wait);
             });
 
             SKIPS_REF.on('value', (snap) => {
@@ -4432,7 +4376,6 @@
                 countdown: null,
                 cancel: null,
                 pendingDisconnect: null,
-                notice: null,          // ولا الإشعارات
                 rounds: null,          // سجل الأدوار لا يُنقل للعبة التالية
                 skips: null            // ولا الحرمان من دور
             }).catch(() => {});
@@ -4457,7 +4400,6 @@
                 roles: null,
                 chats: null,
                 pendingDisconnect: null,
-                notice: null,
                 rounds: null,          // سجل الأدوار لا يبقى بعد نهاية اللعبة
                 skips: null,
                 clue: { word: '', num: '-' },
@@ -6296,22 +6238,6 @@
         // شريط إعلان عام بنفس أسلوب شريط الأدوار (الجولة 54)
         const NOTICE_BANNER_MS = 3200;   // مدة رسالة الإشعار الصفراء
         let bannerHideAt = 0;   // متى تختفي (ليبدأ الانقلاب بعدها)
-        let NOTICE_REF = null;          // game/notice — إشعارات يراها كل اللاعبين
-        let lastNoticeSeen = 0;         // آخر إشعار عُرض (منعاً للتكرار)
-        const NOTICE_DELAY_MS = 1500;   // مهلة ليتّضح ما جرى قبل ظهور الشريط
-
-        // يبثّ إشعاراً لكل اللاعبين. التأخير يقع عند العرض لا عند البثّ،
-        // فيرى الجميع نتيجة البطاقة أولاً (وسم الخطأ أو نبض المحايدة)
-        // ثم يظهر الشريط.
-        function broadcastNotice(text, theme) {
-            if (!NOTICE_REF || !text) return;
-            NOTICE_REF.set({ text: text, theme: theme || 'banner-notice', ts: Date.now() }).catch(() => {});
-        }
-
-        // اسم الفريق الذي سيلعب بعد هذا الدور
-        function nextTeamLabel(fromTeam) {
-            return fromTeam === 'red' ? 'الأزرق' : 'الأحمر';
-        }
         function showNoticeBanner(text, theme) {
             const overlay = document.getElementById('turnBannerOverlay');
             const banner = document.getElementById('turnBannerText');
@@ -6327,16 +6253,6 @@
 
         // ═══ توضيح «إجابة خاطئة» على البطاقة (الجولة 54) ═══
         // تُكتب تحت الكلمة مع بقاء صورة من خمّنها، فيتضح للجميع ما جرى.
-        // نبضة على البطاقة المحايدة ليتّضح ما جرى قبل ظهور الشريط
-        function pulseNeutralCard(index) {
-            const card = document.getElementById(`card-${index}`);
-            if (!card) return;
-            card.classList.remove('neutral-pulse');
-            void card.offsetWidth;                 // إعادة تشغيل الحركة
-            card.classList.add('neutral-pulse');
-            trackTimeout(() => card.classList.remove('neutral-pulse'), 1200);
-        }
-
         function markWrongCard(index) {
             const card = document.getElementById(`card-${index}`);
             if (!card) return;
@@ -6618,9 +6534,6 @@
                     logRoundEvent('guess', `${currentPlayer.name} خمّن «${guessedWord}» — لفريق الخصم`, myTeam);
                     recordGuess(index, guessedWord, color, myTeam, 'للخصم');
                     markWrongCard(index);          // توضيح «إجابة خاطئة» تحت الكلمة
-                    broadcastNotice(
-                        `إجابة خاطئة أدت إلى نقطة للفريق الثاني، الآن دور الفريق ${nextTeamLabel(myTeam)}`,
-                        'banner-notice');
                     if (enemyTeam === 'red') redLeft--; else blueLeft--;
                     STATE_REF.update({ redWordsLeft: redLeft, blueWordsLeft: blueLeft });
                     if (checkWinLocal(redLeft, blueLeft, enemyTeam)) return;
@@ -6632,10 +6545,6 @@
                     const textSpan = document.getElementById(`word-text-${index}`);
                     textSpan.style.transition = 'opacity 0.3s'; textSpan.style.opacity = '0';
                     setTimeout(() => { textSpan.innerText = 'إجابة محايدة'; textSpan.style.opacity = '1'; }, 300);
-                    pulseNeutralCard(index);
-                    broadcastNotice(
-                        `إجابة بيضاء، انتهى دوركم والآن دور الفريق ${nextTeamLabel(myTeam)}`,
-                        'banner-neutral');
                     endGuesserTurn();
                 } else if (color === 'word-black') {
                     SFX.wrong();
