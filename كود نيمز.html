@@ -568,8 +568,10 @@
            وليس display:none (الأخير قد يُسقط تخطيط الإطار في بعض المتصفحات).
            لا نلمس src بعد التهيئة إطلاقاً. */
         .njd-chat-window {
-            position: fixed; top: 70px; left: 50%; margin-left: -230px;
-            width: 460px; height: 560px;
+            /* أصغر من السابق (460×560) ليبقى حول النافذة فراغ يُمسك منه
+               مقبض التحجيم بلا أن يلتصق بحافة الشاشة. */
+            position: fixed; top: 64px; left: 50%; margin-left: -190px;
+            width: 380px; height: 470px;
             display: flex; flex-direction: column;
             background: var(--surface-1);
             border: 2px solid var(--line-strong);
@@ -660,11 +662,17 @@
         .njd-chat-resize {
             position: absolute; width: 15px; height: 15px; left: -15px; bottom: -15px;
             cursor: nesw-resize; z-index: 5; touch-action: none;
+            transition: left .12s ease, right .12s ease, top .12s ease, bottom .12s ease;
             background:
               linear-gradient(45deg, transparent 46%, var(--line-strong) 46%, var(--line-strong) 56%, transparent 56%),
               linear-gradient(45deg, transparent 68%, var(--line-strong) 68%, var(--line-strong) 78%, transparent 78%);
         }
         .njd-chat-window.njd-chat-max .njd-chat-resize { display: none; }
+        /* أوضاع المقبض: يُضبط الصنف من njdPlaceGrip() حسب مكان النافذة،
+           فلا يخرج عن الشاشة أبداً ويبقى قابلاً للضغط في كل الجهات. */
+        .njd-chat-resize.grip-rt { left: auto; right: -15px; bottom: auto; top: -15px; cursor: nesw-resize; }
+        .njd-chat-resize.grip-lt { left: -15px; right: auto; bottom: auto; top: -15px; cursor: nwse-resize; }
+        .njd-chat-resize.grip-rb { left: auto; right: -15px; bottom: -15px; top: auto; cursor: nwse-resize; }
         /* القصّ انتقل من النافذة إلى جسمها، فيبقى الإطار مستديراً
            ولا يُقصّ المقبض الموضوع خارج الحدود. */
         .njd-chat-body { border-radius: 0 0 14px 14px; overflow: hidden; }
@@ -679,11 +687,14 @@
             /* حجم ابتدائي مريح فقط — وليس إجباراً على ملء الشاشة.
                المستخدم حرّ في تصغيرها بالمقبض أو تكبيرها بالزر. */
             .njd-chat-window {
-                top: 8px; left: 8px; margin-left: 0;
-                width: calc(100vw - 16px); height: 72dvh; border-radius: 14px;
+                top: 34px; left: 34px; margin-left: 0;
+                width: calc(100vw - 68px); height: 64dvh; border-radius: 14px;
             }
             /* مقبض أكبر ليسهل الإمساك به بالإصبع */
             .njd-chat-resize { width: 26px; height: 26px; left: -26px; bottom: -26px; }
+            .njd-chat-resize.grip-rt { right: -26px; top: -26px; }
+            .njd-chat-resize.grip-lt { left: -26px; top: -26px; }
+            .njd-chat-resize.grip-rb { right: -26px; bottom: -26px; }
         }
         @media (prefers-reduced-motion: reduce) { .njd-chat-window { transition: none; } }
 
@@ -799,6 +810,13 @@
             font-weight: 900; font-size: 13px; z-index: 4000; box-shadow: 0 4px 14px rgba(0,0,0,0.6);
             white-space: nowrap;
         }
+        .reconnect-bar .rc-surrender {
+            margin-inline-start: 10px; background: var(--red-base); color: #fff;
+            border: none; border-radius: 7px; padding: 3px 10px;
+            font-family: 'Cairo', sans-serif; font-weight: 900; font-size: 11px;
+            cursor: pointer; transition: filter .15s ease;
+        }
+        .reconnect-bar .rc-surrender:hover { filter: brightness(1.15); }
         .reconnect-bar .rc-count {
             display: inline-block; background: var(--silver-dim); color: #111; border-radius: 6px;
             padding: 1px 8px; margin-left: 6px; font-weight: 900;
@@ -1445,8 +1463,24 @@
         }
         /* شريط إعلان محايد (إلغاء دور) */
         .turn-banner.banner-notice {
-            background: linear-gradient(90deg, rgba(245,197,24,.92), rgba(180,140,10,.92));
+            background: linear-gradient(135deg, rgba(245,197,24,.97), rgba(214,164,12,.97));
             color: #1a1400;
+            /* رسالة مدمجة وسط الشاشة، لا شريط يعبر العرض كاملاً */
+            width: auto; max-width: min(78vw, 460px);
+            margin: 0 auto; padding: 14px 26px;
+            font-size: clamp(15px, 3.1vw, 21px); line-height: 1.5;
+            border: 2px solid rgba(255,236,160,.95);
+            border-radius: 16px;
+            box-shadow: 0 14px 40px rgba(0,0,0,.6);
+            transform: none;   /* حركتها الخاصة تتكفّل بالدخول */
+        }
+        /* ظهور واختفاء لطيف في المكان — حركة خالصة بلا تغيير أبعاد */
+        @keyframes noticePop {
+            0%   { opacity: 0; transform: translateY(-18px) scale(0.90); }
+            9%   { opacity: 1; transform: translateY(0)      scale(1.03); }
+            15%  { opacity: 1; transform: translateY(0)      scale(1); }
+            85%  { opacity: 1; transform: translateY(0)      scale(1); }
+            100% { opacity: 0; transform: translateY(-12px)  scale(0.95); }
         }
 
 
@@ -1785,7 +1819,9 @@
     </div>
 
     <div class="reconnect-bar" id="reconnectBar">
-        <span id="reconnectText"></span><span class="rc-count" id="reconnectCount">30</span>
+        <span id="reconnectText"></span><span class="rc-count" id="reconnectCount">300</span>
+        <button type="button" class="rc-surrender" id="reconnectSurrenderBtn"
+                onclick="surrenderGame()">انسحاب</button>
     </div>
 
     <div id="roomsScreen">
@@ -2122,7 +2158,7 @@
         const WINS_REF = db.ref('/winsHistory');
 
         // ===== مهلة عودة اللاعب المنقطع =====
-        const RECONNECT_SECONDS = 30;
+        const RECONNECT_SECONDS = 300;   // خمس دقائق: وقت كافٍ لعودة حقيقية
         // ===== نبضة الحياة: تمييز الانقطاع الحقيقي عن مجرد تبديل التبويب =====
         // المتصفح يوقف onDisconnect أحياناً عند تبديل التبويب/التطبيق، والصفحة تبقى حيّة فعلياً.
         // لذلك نكتب نبضة كل 5 ثوانٍ، ولا نعتبر اللاعب منقطعاً إلا إذا توقفت نبضته فترة كافية.
@@ -2131,7 +2167,9 @@
         // أصغر من فترة الخنق نفسها — فالتبويب الخلفي كان يقتل صاحبه.
         // الحل: النبض من داخل Web Worker (خيط مستقل لا يُخنق)، ومهلة موت
         // أوسع من أسوأ خنق ممكن.
-        const HEARTBEAT_MS = 4000;            // كل كم نكتب نبضة
+        // نبضة كل 3 ثوانٍ: اكتشاف أسرع للعودة، وكلفتها لا تُذكر (رقم واحد
+        // كل 3 ثوانٍ). ومهلة الموت تبقى أوسع من أسوأ خنق للتبويب الخفي.
+        const HEARTBEAT_MS = 3000;            // كل كم نكتب نبضة
         const HEARTBEAT_DEAD_MS = 75000;      // بعد كم من الصمت نعتبره منقطعاً فعلاً
         let heartbeatWorker = null;           // مؤقّت لا يخنقه المتصفح
         let socketConnected = true;           // حالة الاتصال الحقيقية من الخادم
@@ -4062,9 +4100,13 @@
                 const fx = data.swapFx;
                 if (fx && fx.ts && fx.ts > lastSwapFxSeen) {
                     lastSwapFxSeen = fx.ts;
-                    // أخِّر الانقلاب حتى يختفي شريط الإعلان، وإلا وقع خلفه
-                    // فلا يراه اللاعبون. bannerHideAt يضبطه showNoticeBanner.
-                    const wait = Math.max(0, (bannerHideAt || 0) - Date.now()) + 220;
+                    // الانقلاب يبدأ بعد اختفاء الشريط الأصفر دائماً.
+                    // لا نعتمد على bannerHideAt وحده لأن مستمع اللوحة قد
+                    // يسبق مستمع الأدوار، فيُقرأ صفراً ويقع الانقلاب خلف
+                    // الشريط. نحسب الموعد من ختم الإلغاء نفسه.
+                    const fromStamp = fx.ts + NOTICE_BANNER_MS;
+                    const target = Math.max(fromStamp, bannerHideAt || 0);
+                    const wait = Math.max(0, target - Date.now()) + 200;
                     const ids = fx.idx || [], grants = fx.grant || [];
                     trackTimeout(() => playSwapAnimation(ids, grants), wait);
                 }
@@ -4660,8 +4702,10 @@
                         currentPlayer.currentRoleId = firstRole;
                         PLAYERS_REF.child(myPlayerId).update({ currentRoleId: firstRole }).catch(() => {});
                     }
-                    // أزل سجلّي وحدي؛ من بقي منقطعاً يظل في الانتظار بمهلته
+                    // أزل سجلّي وحدي؛ من بقي منقطعاً يظل في الانتظار بمهلته.
+                    // والتنظيف المحلي يقع فوراً فلا يستمر العدّ بعد عودتي.
                     clearReconnectFor(myKey, currentPlayer.name);
+                    clearReconnectLocal(myPlayerId, currentPlayer.name);
                     showToast('تم إعادة الاتصال بعد الانقطاع');   // توست: لا يحجب اللوحة عند العودة
                 };
 
@@ -4741,6 +4785,8 @@
                     : `${nm[0] || 'أحد اللاعبين'} غادر — سيتم إلغاء الجولة إن لم يعد خلال`;
                 const tEl = document.getElementById('reconnectText');
                 if (tEl.innerText !== lbl) tEl.innerText = lbl;
+                const sb = document.getElementById('reconnectSurrenderBtn');
+                if (sb) sb.style.display = (!isSiteOwner && currentPlayer.currentRoleId) ? 'inline-block' : 'none';
 
                 const left = Math.max(0, Math.ceil((pendingDisconnectData.deadline - Date.now()) / 1000));
                 document.getElementById('reconnectCount').innerText = left;
@@ -4804,9 +4850,29 @@
         }
 
         // إزالة لاعب واحد من قائمة الانتظار عند عودته (دون إلغاء انتظار الآخرين)
+        // ينظّف الأثر المحلي للانتظار: يوقف العدّ ويُفرغ القيم ويخفي الشريط.
+        // بدونه يبقى المؤقّت يعمل بعد عودة اللاعب لأن الخادم وحده هو من
+        // نُظّف، والنسخة المحلية بقيت كما هي.
+        function clearReconnectLocal(key, name) {
+            const d = pendingDisconnectData;
+            if (d && d.players) {
+                if (key) delete d.players[key];
+                for (const k in d.players) {
+                    if (d.players[k] && d.players[k].name === name) delete d.players[k];
+                }
+                if (!Object.keys(d.players).length) pendingDisconnectData = null;
+            } else if (d && (!name || d.name === name)) {
+                pendingDisconnectData = null;
+            }
+            if (!pendingDisconnectData) hideReconnectBar();
+        }
+
         function clearReconnectFor(pid, name) {
+            const localKey = pid || ('n_' + String(name || '').replace(/[.#$/\[\]]/g, '_'));
+            clearReconnectLocal(localKey, name);   // أوقف العدّ محلياً فوراً
+            if (pid && pid === myPlayerId) clearReconnectLocal(myPlayerId, currentPlayer.name);
             if (!PENDING_DC_REF) return;
-            const key = pid || ('n_' + String(name || '').replace(/[.#$/\[\]]/g, '_'));
+            const key = localKey;
             PENDING_DC_REF.transaction(current => {
                 if (!current || !current.active) return current;
                 const players = Object.assign({}, current.players || {});
@@ -5090,7 +5156,7 @@
             body.insertBefore(f, body.firstChild);
             njdChatIframe = f;
             // قياس أولي بعد أن يُنجز المتصفح التخطيط
-            requestAnimationFrame(njdFitFrame);
+            requestAnimationFrame(() => { njdFitFrame(); njdPlaceGrip(); });
 
             // بعض المواقع تمنع التضمين؛ نكشف ذلك بلطف بعد مهلة ونعرض رسالة
             // توضيحية بدل نافذة سوداء — دون أي محاولة لتجاوز سياسة الموقع.
@@ -5421,7 +5487,7 @@
         }
 
         function njdSyncMaxBtn() {
-            requestAnimationFrame(njdFitFrame);
+            requestAnimationFrame(() => { njdFitFrame(); njdPlaceGrip(); });
             const b = document.getElementById('njdChatMaximize');
             if (!b) return;
             b.innerHTML = njdIcon(njdChatMaximized ? 'restore' : 'max');
@@ -5440,6 +5506,25 @@
         }
 
         // يبقي النافذة داخل الشاشة (مهم عند تدوير الجوال أو تصغير النافذة)
+        // يضع مقبض التحجيم في زاوية تبقى داخل الشاشة دائماً.
+        // كان ثابتاً أسفل-يسار، فإذا لصق المستخدم النافذة بالحافة اليسرى
+        // أو السفلية خرج المقبض عن الشاشة ولم يعد بالإمكان تغيير الحجم.
+        function njdPlaceGrip() {
+            const win = njdChatWin(); if (!win) return;
+            const grip = document.getElementById('njdChatResize'); if (!grip) return;
+            const r = win.getBoundingClientRect();
+            const pad = 30;                       // ما يحتاجه المقبض من فراغ
+            const leftOK   = r.left  >= pad;
+            const bottomOK = (window.innerHeight - r.bottom) >= pad;
+            const topOK    = r.top   >= pad;
+            grip.classList.remove('grip-rt', 'grip-lt', 'grip-rb');
+            if (leftOK && bottomOK) return;                       // الوضع الأصلي: يسار-أسفل
+            if (!leftOK && bottomOK)      grip.classList.add('grip-rb');   // انتقل يمين-أسفل
+            else if (leftOK && topOK)     grip.classList.add('grip-lt');   // يسار-أعلى
+            else if (topOK)               grip.classList.add('grip-rt');   // يمين-أعلى
+            else                          grip.classList.add('grip-rb');   // ملاذ أخير
+        }
+
         function njdClampIntoView() {
             const w = njdChatWin(); if (!w || njdChatMaximized || !njdChatMoved) return;
             const r = w.getBoundingClientRect();
@@ -5447,6 +5532,7 @@
             const x = Math.min(Math.max(8, r.left), Math.max(8, vw - r.width - 8));
             const y = Math.min(Math.max(8, r.top),  Math.max(8, vh - r.height - 8));
             njdApplyPos(x, y);
+            njdPlaceGrip();
         }
 
         // يظهر شريط «استعادة جلستي» فقط إن كان الإذن غير ممنوح فعلاً.
@@ -5510,6 +5596,7 @@
                     const nx = Math.min(Math.max(4, ox + (e.clientX - sx)), Math.max(4, window.innerWidth  - r.width  - 4));
                     const ny = Math.min(Math.max(4, oy + (e.clientY - sy)), Math.max(4, window.innerHeight - r.height - 4));
                     njdApplyPos(nx, ny);
+                    njdPlaceGrip();
                 });
                 const endDrag = (e) => {
                     if (!dragging) return;
@@ -5517,6 +5604,7 @@
                     w.classList.remove('njd-chat-busy');
                     header.classList.remove('njd-chat-grabbing');
                     try { header.releasePointerCapture(e.pointerId); } catch (x) {}
+                    njdPlaceGrip();   // المكان تغيّر: انقل المقبض لزاوية متاحة
                 };
                 header.addEventListener('pointerup', endDrag);
                 header.addEventListener('pointercancel', endDrag);
@@ -5526,10 +5614,15 @@
             if (grip) {
                 let rz = false, sx = 0, sy = 0, sw = 0, sh = 0;
                 let sRight = 0;
+                let gLeft = true, gBottom = true, sLeft = 0, sTop = 0, sBottom = 0;
                 grip.addEventListener('pointerdown', (e) => {
                     const r = w.getBoundingClientRect();
                     rz = true; sx = e.clientX; sy = e.clientY; sw = r.width; sh = r.height;
                     sRight = r.right;   // نُثبّت الحافة اليمنى مكانها أثناء التحجيم
+                    sLeft = r.left; sTop = r.top; sBottom = r.bottom;
+                    // أي زاوية يشغلها المقبض الآن؟ اتجاه السحب يتبعها.
+                    gLeft   = !(grip.classList.contains('grip-rt') || grip.classList.contains('grip-rb'));
+                    gBottom = !(grip.classList.contains('grip-rt') || grip.classList.contains('grip-lt'));
                     w.classList.add('njd-chat-busy');
                     try { grip.setPointerCapture(e.pointerId); } catch (x) {}
                     e.preventDefault();
@@ -5539,15 +5632,19 @@
                     e.preventDefault();
                     // المقبض في الزاوية اليسرى: السحب يساراً يُكبّر (لذا نطرح).
                     // حدّ أدنى صغير ليتمكّن المستخدم من تصغيرها فعلاً.
-                    const nw = Math.max(200, Math.min(sw - (e.clientX - sx), window.innerWidth  - 16));
-                    const nh = Math.max(170, Math.min(sh + (e.clientY - sy), window.innerHeight - 16));
+                    const dx = e.clientX - sx, dy = e.clientY - sy;
+                    const nw = Math.max(200, Math.min(gLeft ? sw - dx : sw + dx, window.innerWidth  - 16));
+                    const nh = Math.max(170, Math.min(gBottom ? sh + dy : sh - dy, window.innerHeight - 16));
                     w.style.width  = nw + 'px';
                     w.style.height = nh + 'px';
-                    // الحافة اليمنى ثابتة، فالنافذة لا تنزلق أثناء التحجيم
-                    w.style.left = Math.max(8, sRight - nw) + 'px';
+                    // نُثبّت الحافة المقابلة للمقبض فلا تنزلق النافذة
+                    w.style.left = gLeft ? Math.max(8, sRight - nw) + 'px' : Math.max(8, sLeft) + 'px';
+                    if (!gBottom) w.style.top = Math.max(8, sBottom - nh) + 'px';
+                    else          w.style.top = Math.max(8, sTop) + 'px';
                     w.style.marginLeft = '0';
                     njdChatMoved = true;
                     njdFitFrame();
+                    njdPlaceGrip();
                 });
                 const endRz = (e) => {
                     if (!rz) return; rz = false;
@@ -5558,7 +5655,7 @@
                 grip.addEventListener('pointercancel', endRz);
             }
 
-            window.addEventListener('resize', () => { njdClampIntoView(); njdFitFrame(); });
+            window.addEventListener('resize', () => { njdClampIntoView(); njdFitFrame(); njdPlaceGrip(); });
         }
         njdChatSetup();
 
@@ -6137,7 +6234,8 @@
         }
 
         // شريط إعلان عام بنفس أسلوب شريط الأدوار (الجولة 54)
-        let bannerHideAt = 0;   // متى يختفي الشريط (ليبدأ الانقلاب بعده)
+        const NOTICE_BANNER_MS = 3200;   // مدة رسالة الإشعار الصفراء
+        let bannerHideAt = 0;   // متى تختفي (ليبدأ الانقلاب بعدها)
         function showNoticeBanner(text, theme) {
             const overlay = document.getElementById('turnBannerOverlay');
             const banner = document.getElementById('turnBannerText');
@@ -6146,9 +6244,9 @@
             banner.className = 'turn-banner ' + (theme || 'banner-notice');
             overlay.style.display = 'flex';
             banner.style.animation = 'none'; banner.offsetHeight;
-            banner.style.animation = 'slideBanner 4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards';
-            bannerHideAt = Date.now() + 4000;
-            trackTimeout(() => { overlay.style.display = 'none'; }, 4000);
+            banner.style.animation = 'noticePop ' + (NOTICE_BANNER_MS / 1000) + 's ease-out forwards';
+            bannerHideAt = Date.now() + NOTICE_BANNER_MS;
+            trackTimeout(() => { overlay.style.display = 'none'; }, NOTICE_BANNER_MS);
         }
 
         // ═══ توضيح «إجابة خاطئة» على البطاقة (الجولة 54) ═══
